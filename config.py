@@ -1,0 +1,64 @@
+"""
+Configurações do Serviço RPA de Bloqueio de Perfis.
+Centraliza todas as configurações necessárias para comunicação com a API SIGA
+e controle do loop de polling.
+"""
+
+import os
+from dotenv import load_dotenv
+
+# Carrega variáveis de ambiente do arquivo .env (se existir)
+load_dotenv()
+
+# ============================================
+# Configurações da API SIGA
+# ============================================
+# URL base da API do Sistema SIGA (sem barra final)
+SIGA_API_URL = os.environ.get("SIGA_API_URL", "http://localhost:8000")
+
+# Credenciais da conta staff usada pelo RPA
+# IMPORTANTE: A conta precisa ter is_staff=True no Django
+SIGA_EMAIL = os.environ.get("SIGA_EMAIL")
+SIGA_PASSWORD = os.environ.get("SIGA_PASSWORD")
+
+if not SIGA_EMAIL or not SIGA_PASSWORD:
+    raise ValueError(
+        "ERRO CRÍTICO: Variáveis de ambiente SIGA_EMAIL e SIGA_PASSWORD são obrigatórias. "
+        "Verifique se o arquivo .env existe e está configurado corretamente."
+    )
+
+# URL direta para a página de consulta do SAGGESTAO
+SAGGESTAO_CONSULTATION_URL = os.environ.get(
+    "SAGGESTAO_CONSULTATION_URL",
+    "http://psagapr01/saggestaoagu/pages/cadastro/profissional/consultar.xhtml"
+)
+
+# ============================================
+# Configurações de Polling
+# ============================================
+# Intervalo em segundos entre ciclos quando há itens processados
+POLLING_INTERVAL = int(os.environ.get("POLLING_INTERVAL", "5"))
+
+# Intervalo em segundos quando não há pedidos pendentes
+POLLING_INTERVAL_IDLE = int(os.environ.get("POLLING_INTERVAL_IDLE", "10"))
+
+# ============================================
+# Configurações de Sessão do SAGGESTAO
+# ============================================
+# Intervalo em segundos para keep-alive da sessão do SAGGESTAO (padrão: 240s = 4min)
+SESSION_KEEPALIVE_INTERVAL = int(os.environ.get("SESSION_KEEPALIVE_INTERVAL", "240"))
+
+# Executar navegador em modo headless (sem janela visível)
+BROWSER_HEADLESS = os.environ.get("BROWSER_HEADLESS", "true").lower() == "true"
+
+# Timeout padrão para operações do Playwright (em milissegundos)
+PLAYWRIGHT_DEFAULT_TIMEOUT = int(os.environ.get("PLAYWRIGHT_DEFAULT_TIMEOUT", "60000"))
+
+# Número máximo de retries para operações críticas
+MAX_RETRIES = int(os.environ.get("MAX_RETRIES", "4"))
+
+# ============================================
+# Configurações de Log
+# ============================================
+LOG_FILE = os.environ.get("LOG_FILE", "rpa_bloqueios.log")
+LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")

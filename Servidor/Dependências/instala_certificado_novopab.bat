@@ -1,0 +1,1 @@
+"C:\Program Files\Java\jdk-20\bin\keytool" -importcert -file novopab.cer -alias novopab -keystore "C:\Program Files\Java\jdk-20\lib\security\cacerts"

@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+
+# Virtual Environment
+venv/
+.venv/
+env/
+
+# Environment Variables (SEGURANÇA)
+.env
+.env.local
+.env.production
+
+# Logs
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Agent config (opcional - não versionável)
+.agent/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Java crash logs
+hs_err_pid*.log
+replay_pid*.log

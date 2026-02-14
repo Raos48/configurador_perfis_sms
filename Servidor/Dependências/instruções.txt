@@ -1,0 +1,4 @@
+1)Instalar o Java, que está na pasta de dependências (jdk-20_windows-x64_bin.msi)
+2)Editar o arquivo pkcs11.cfg, se o seu token for aquele SafeNet (luz azul) você deixa do jeito que está, se for aquele outro de tampa cinza, você vai comentar a segunda linha e descomentar a terceira.
+3)Você vai até as variáveis de ambiente do Windows, e vai adicionar variáveis para o usuário, então você vai adicionar as variável seed_otp, que conterá sua seed do Gerid do Google Authenticator, e a variável senha token, com a senha do seu token
+4)Vamos instalar o certificados, você vai entrar no CMD em modo administrador, e vai até a pasta dependências e vai executar o arquivo "instala_certificado_portal_sibe.bat"

@@ -1,0 +1,1 @@
+"C:\Program Files\Java\jdk-20\bin\keytool" -importcert -file pat.cer -alias pat -keystore "C:\Program Files\Java\jdk-20\lib\security\cacerts" 

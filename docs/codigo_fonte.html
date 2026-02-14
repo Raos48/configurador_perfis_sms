@@ -1,0 +1,622 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html lang="pt-br" xmlns="http://www.w3.org/1999/xhtml" xmlns:menu="http://previdencia.org.br/menu">
+
+<head id="j_idt2">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link type="text/css" rel="stylesheet"
+        href="/saggestaoagu/javax.faces.resource/fa/font-awesome.css.xhtml?ln=primefaces&amp;v=6.0" />
+    <link type="text/css" rel="stylesheet"
+        href="/saggestaoagu/javax.faces.resource/components.css.xhtml?ln=primefaces&amp;v=6.0" />
+    <script type="text/javascript"
+        src="/saggestaoagu/javax.faces.resource/jquery/jquery.js.xhtml?ln=primefaces&amp;v=6.0"></script>
+    <script type="text/javascript"
+        src="/saggestaoagu/javax.faces.resource/jquery/jquery-plugins.js.xhtml?ln=primefaces&amp;v=6.0"></script>
+    <script type="text/javascript"
+        src="/saggestaoagu/javax.faces.resource/core.js.xhtml?ln=primefaces&amp;v=6.0"></script>
+    <script type="text/javascript"
+        src="/saggestaoagu/javax.faces.resource/components.js.xhtml?ln=primefaces&amp;v=6.0"></script>
+    <script type="text/javascript">if (window.PrimeFaces) { PrimeFaces.settings.locale = 'pt_BR'; }</script>
+    <title>SAG Gestão - Módulo Gerencial
+    </title>
+    <link href="/saggestaoagu/assets/css/all.min.css" rel="stylesheet" type="text/css" />
+    <link href="/saggestaoagu/css/sag.css" rel="stylesheet" type="text/css" />
+    <noscript>
+        <div class="mensagem">
+            <p class="erro">Essa aplicação usa recursos de Scripts Ativos. Habilite os Scripts Ativos (Javascript...) no
+                seu Browser!!</p>
+        </div>
+    </noscript>
+    <link rel="shortcut icon" href="http://portal.dataprev.gov.br/sites/all/themes/govbr_theme/favicon.ico" />
+</head>
+
+<body>
+
+    <div class="a navbar-default navbar-topo navbar-fixed-top hidden-print">
+        <!-- BARRA DO GOVERNO ELETRONICO NA INTERNET -->
+
+        <div id="barra-brasil-v3">
+            <span></span>
+            <div class="imagemGov">
+                <a class="brasilgov" target="_blank" href="http://www.brasil.gov.br"></a>
+            </div>
+        </div>
+    </div>
+
+    <!-- ********************************* Altera&ccedil;&otilde;es idVisual  ********************************* -->
+
+    <div id="navbar-logo" class="navbar navbar-default navbar-topo navbar-fixed-top hidden-print" role="navigation">
+
+        <div class="container-fluid">
+
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#menu-topo"
+                    aria-expanded="false">
+                    <span class="sr-only">Toggle navigation</span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+                <a id="tituloAplicacao" href="/saggestaoagu/pages/index.xhtml" class="navbar-brand" alt="SAG Gestão"
+                    title="Ir para a página inicial">
+                    <span class="logo-sistema">SAG Gestão
+                        <small class="text-warning"><i>Módulo Gerencial</i></small>
+                    </span>
+                </a>
+            </div>
+            <div class="navbar-collapse collapse" id="menu-topo">
+                <ul class="nav navbar-nav navbar-right" data-sm-skip="skip">
+                    <li>
+                        <a href="#" class="btn" title="Alto Contraste"><span class="ico-black-white-c"></span></a>
+                    </li>
+                    <li>
+                        <a href="#" class="letra_menor btn"><span class="ico-minus"></span></a>
+                    </li>
+                    <li>
+                        <a href="#" class="letra_normal btn"><span class="ico-letter"></span></a>
+                    </li>
+                    <li>
+                        <a href="#" class="letra_maior btn"><span class="ico-plus"></span></a>
+                    </li>
+
+                    <li>
+                        <a href="http://www.secom.gov.br/acessibilidade" target="_blank" class="btn"
+                            title="Acessibilidade"><span class="ico-wheelchair"></span></a>
+                    </li>
+                    <li class="dropdown">
+                        <a href="#" class="dropdown-toggle dtp-unblock" data-toggle="dropdown">
+                            <span class="ico-user dtp-ico-user"></span> 000.945.391-11
+                            <span class="caret"></span>
+                        </a>
+                        <ul class="dropdown-menu userProfile" role="menu">
+                            <li>
+                                <h3><strong class="ico-user-c"></strong> Ricardo Alves de Oliveira Silva</h3>
+                            </li>
+                            <li>
+                                <h5><strong>PRESIDÊNCIA</strong> - 01001</h5>
+                            </li>
+                            <li>
+                                <h6>Perfis de Acesso:</h6>
+                            </li>
+                            <li>
+                                <div class="btn-group-vertical">
+                                    <button class="btn btn-primary active" type="button"><span
+                                            class="ico-user-tie"></span>SERAT
+                                    </button>
+                                    <!-- &lt;button class="btn btn-default" type="button"&gt;&lt;span class="ico-user-tie"&gt;&lt;/span&gt; A Implementar...&lt;/button&gt; -->
+                                </div>
+                            </li>
+                            <li></li>
+                        </ul>
+                    </li>
+                    <li>
+                        <a id="anchorLogout" href="/saggestaoagu/pages/comum/gpa/logout.srv"
+                            class="ui-commandlink ui-widget btn navbar-btn logout dtp-unblock">
+                            <span class="ico-door-out"></span> SAIR
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- ********************************* Altera&ccedil;&otilde;es idVisual  ********************************* -->
+
+    <nav id="navegacao" role="navigation" class="navbar-fixed-top navbar-menu hidden-print">
+        <form id="formMenu" name="formMenu" method="post"
+            action="/saggestaoagu/pages/cadastro/profissional/confirmarHorarioDivergenteSISREF.xhtml?cid=2"
+            enctype="application/x-www-form-urlencoded">
+            <input type="hidden" name="formMenu" value="formMenu" />
+            <input type="hidden" name="DTPINFRA_TOKEN" value="1771515234182" />
+            <div class="navbar-collapse collapse" aria-expanded="false" id="menubar">
+                <ul class="sm sm-inss" id="main-menu" role="menubar">
+                    <li role="menuitem"><a id="formMenu:idInicio" name="formMenu:idInicio"
+                            href="/saggestaoagu/pages/index.xhtml" title="Inicio">Inicio</a></li>
+                    <li role="menuitem"><a href="#">Administração</a>
+                        <ul>
+                            <li role="menuitem">
+                                <script type="text/javascript"
+                                    src="/saggestaoagu/javax.faces.resource/jsf.js.xhtml?ln=javax.faces"></script>
+                                <a id="formMenu:idCatalogoServicos" href="#" title="Catálogo de Serviços"
+                                    onclick="mojarra.jsfcljs(document.getElementById('formMenu'),{'formMenu:idCatalogoServicos':'formMenu:idCatalogoServicos'},'');return false">Catálogo
+                                    de Serviços</a>
+                            </li>
+                            <li role="menuitem"><a id="formMenu:idGrupoServicos" href="#" title="Grupos de Serviços"
+                                    onclick="mojarra.jsfcljs(document.getElementById('formMenu'),{'formMenu:idGrupoServicos':'formMenu:idGrupoServicos'},'');return false">Grupos
+                                    de Serviços</a></li>
+                            <li role="menuitem"><a id="formMenu:idGrupoServicosGerenciais" href="#"
+                                    title="Grupos de Serviços Gerenciais"
+                                    onclick="mojarra.jsfcljs(document.getElementById('formMenu'),{'formMenu:idGrupoServicosGerenciais':'formMenu:idGrupoServicosGerenciais'},'');return false">Grupos
+                                    de Serviços Gerenciais</a></li>
+                            <li role="menuitem"><a id="formMenu:idGrupoCamposAdicionais" href="#"
+                                    title="Grupos de Campos Adicionais"
+                                    onclick="mojarra.jsfcljs(document.getElementById('formMenu'),{'formMenu:idGrupoCamposAdicionais':'formMenu:idGrupoCamposAdicionais'},'');return false">Grupos
+                                    de Campos Adicionais</a></li>
+                            <li role="menuitem"><a id="formMenu:idMenuMeuINSS" href="#" title="Menu Cidadão"
+                                    onclick="mojarra.jsfcljs(document.getElementById('formMenu'),{'formMenu:idMenuMeuINSS':'formMenu:idMenuMeuINSS'},'');return false">Menu
+                                    do Meu INSS</a></li>
+                            <li role="menuitem"><a id="formMenu:idLimitadores" href="#" title="Consultar Limitadores"
+                                    onclick="mojarra.jsfcljs(document.getElementById('formMenu'),{'formMenu:idLimitadores':'formMenu:idLimitadores'},'');return false">Limitadores</a>
+                            </li>
+                            <li role="menuitem"><a id="formMenu:idEventualidade" href="#"
+                                    onclick="mojarra.jsfcljs(document.getElementById('formMenu'),{'formMenu:idEventualidade':'formMenu:idEventualidade'},'');return false">Eventualidades</a>
+                            </li>
+                            <li role="menuitem"><a id="formMenu:idTiposDeIdentidade" href="#"
+                                    title="Tipos de Entidade Conveniada"
+                                    onclick="mojarra.jsfcljs(document.getElementById('formMenu'),{'formMenu:idTiposDeIdentidade':'formMenu:idTiposDeIdentidade'},'');return false">Tipos
+                                    de Entidade</a></li>
+                            <li role="menuitem"><a id="formMenu:idTipoAcordoCooperacaoTecnica" href="#"
+                                    title="Tipos de Acordo Cooperação Técnica"
+                                    onclick="mojarra.jsfcljs(document.getElementById('formMenu'),{'formMenu:idTipoAcordoCooperacaoTecnica':'formMenu:idTipoAcordoCooperacaoTecnica'},'');return false">Tipos
+                                    de Acordo de Cooperação Técnica</a></li>
+                            <li role="menuitem"><a id="formMenu:idMeioDeNotificacao" href="#"
+                                    title="Meio de Notificação"
+                                    onclick="mojarra.jsfcljs(document.getElementById('formMenu'),{'formMenu:idMeioDeNotificacao':'formMenu:idMeioDeNotificacao'},'');return false">Meio
+                                    de Notificação</a></li>
+
+
+                        </ul>
+                    </li>
+                    <li role="menuitem"><a href="#">Unidades</a>
+                        <ul>
+                            <li role="menuitem"><a id="formMenu:idGestaoUnidades" href="#" title="Gestão de Unidades"
+                                    onclick="mojarra.jsfcljs(document.getElementById('formMenu'),{'formMenu:idGestaoUnidades':'formMenu:idGestaoUnidades'},'');return false">Gestão
+                                    de Unidades</a></li>
+                            <li role="menuitem"><a
+                                    href="/saggestaoagu/pages/cadastro/profissional/consultar.xhtml">Gestão
+                                    de Profissionais</a></li>
+                        </ul>
+                    </li>
+                    <li role="menuitem"><a href="#">Relatórios</a>
+                        <ul>
+                            <li role="menuitem"><a id="formMenu:idAgendaSucinta" href="#" title="Agenda Sucinta"
+                                    onclick="mojarra.jsfcljs(document.getElementById('formMenu'),{'formMenu:idAgendaSucinta':'formMenu:idAgendaSucinta'},'');return false">Agenda
+                                    Sucinta</a></li>
+                            <li role="menuitem"><a id="formMenu:idConsultarRequerimento" href="#"
+                                    title="Consultar Requerimentos"
+                                    onclick="mojarra.jsfcljs(document.getElementById('formMenu'),{'formMenu:idConsultarRequerimento':'formMenu:idConsultarRequerimento'},'');return false">Consultar
+                                    Requerimentos</a></li>
+                            <li role="menuitem"><a id="formMenu:idConsultarRequerimentosUnidade" href="#"
+                                    title="Consultar Agendamentos por Unidade"
+                                    onclick="mojarra.jsfcljs(document.getElementById('formMenu'),{'formMenu:idConsultarRequerimentosUnidade':'formMenu:idConsultarRequerimentosUnidade'},'');return false">Consultar
+                                    Agendamentos por Unidade</a></li>
+                            <li role="menuitem"><a id="formMenu:idInsucessosAgendamento" href="#"
+                                    title="Insucessos de Agendamentos"
+                                    onclick="mojarra.jsfcljs(document.getElementById('formMenu'),{'formMenu:idInsucessosAgendamento':'formMenu:idInsucessosAgendamento'},'');return false">Insucessos
+                                    de Agendamentos</a></li>
+                            <li role="menuitem"><a id="formMenu:idConsultarAgendamentosImpactados" href="#"
+                                    title="Consultar Agendamentos Impactados"
+                                    onclick="mojarra.jsfcljs(document.getElementById('formMenu'),{'formMenu:idConsultarAgendamentosImpactados':'formMenu:idConsultarAgendamentosImpactados'},'');return false">Consultar
+                                    Agendamentos Impactados</a></li>
+                            <li role="menuitem"><a id="formMenu:idRelatorioPortfolioServicos" href="#"
+                                    title="Portfólio de Serviços"
+                                    onclick="mojarra.jsfcljs(document.getElementById('formMenu'),{'formMenu:idRelatorioPortfolioServicos':'formMenu:idRelatorioPortfolioServicos'},'');return false">Portfólio
+                                    de Serviços</a></li>
+                            <li role="menuitem"><a id="formMenu:idRelatorioServicosCompetenciaExecucao" href="#"
+                                    title="Serviços x Competência x Execução"
+                                    onclick="mojarra.jsfcljs(document.getElementById('formMenu'),{'formMenu:idRelatorioServicosCompetenciaExecucao':'formMenu:idRelatorioServicosCompetenciaExecucao'},'');return false">Serviços
+                                    x Competência x Execução</a></li>
+                            <li role="menuitem"><a id="formMenu:idServicosCompetenciasProfissionais" href="#"
+                                    title="Serviços x Competências de Profissionais"
+                                    onclick="mojarra.jsfcljs(document.getElementById('formMenu'),{'formMenu:idServicosCompetenciasProfissionais':'formMenu:idServicosCompetenciasProfissionais'},'');return false">Serviços
+                                    x Competências de Profissionais</a></li>
+                            <li role="menuitem"><a id="formMenu:idConsultarProfissionalPorAtendimento" href="#"
+                                    title="Ficha do Profissional por Tipo de Atendimento"
+                                    onclick="mojarra.jsfcljs(document.getElementById('formMenu'),{'formMenu:idConsultarProfissionalPorAtendimento':'formMenu:idConsultarProfissionalPorAtendimento'},'');return false">Ficha
+                                    do Profissional por Tipo de Atendimento</a></li>
+                            <li role="menuitem"><a id="formMenu:idConsultarProfissionaisAfastadosNaUnidade" href="#"
+                                    title="Profissionais Afastados na Unidade"
+                                    onclick="mojarra.jsfcljs(document.getElementById('formMenu'),{'formMenu:idConsultarProfissionaisAfastadosNaUnidade':'formMenu:idConsultarProfissionaisAfastadosNaUnidade'},'');return false">Profissionais
+                                    Afastados na Unidade</a></li>
+                            <li role="menuitem"><a id="formMenu:idConsultarProfissionaisExerciciosEmOutraUnidade"
+                                    href="#" title="Profissionais em Exercício em outra Unidade"
+                                    onclick="mojarra.jsfcljs(document.getElementById('formMenu'),{'formMenu:idConsultarProfissionaisExerciciosEmOutraUnidade':'formMenu:idConsultarProfissionaisExerciciosEmOutraUnidade'},'');return false">Profissionais
+                                    em Exercício em outra Unidade</a></li>
+                            <li role="menuitem"><a id="formMenu:idIntegracaoSGP" href="#" title="Integração SGP"
+                                    onclick="mojarra.jsfcljs(document.getElementById('formMenu'),{'formMenu:idIntegracaoSGP':'formMenu:idIntegracaoSGP'},'');return false">Integração
+                                    SGP</a></li>
+                            <li role="menuitem"><a id="formMenu:idEntidadesConveniadasComAcordoCooperacao" href="#"
+                                    title="Entidades Conveniadas com Acordo de Cooperação"
+                                    onclick="mojarra.jsfcljs(document.getElementById('formMenu'),{'formMenu:idEntidadesConveniadasComAcordoCooperacao':'formMenu:idEntidadesConveniadasComAcordoCooperacao'},'');return false">Entidades
+                                    Conveniadas com Acordo de Cooperação</a></li>
+
+                        </ul>
+                    </li>
+
+                </ul>
+            </div><input type="hidden" name="javax.faces.ViewState" id="javax.faces.ViewState"
+                value="2414068352228143428:-2768958146698957172" autocomplete="off" />
+        </form>
+    </nav>
+
+    <div class="container-fluid" role="main">
+        <div class="col-xs-12 dtp-content">
+            <div class="page-header page-header-intro">
+                <h2>Confirmar Horários divergentes SISREF</h2>
+            </div>
+            <div id="mMensagens" class="ui-messages ui-widget dtp-messages" aria-live="polite">
+                <div class="ui-messages-warn ui-corner-all"><span class="ui-messages-warn-icon"></span>
+                    <ul>
+                        <li><span class="ui-messages-warn-summary">Horário diverge dos dados do servidor oriundo do
+                                SISREF. Confirma a atualização dos dados do SAG com os dados do SISREF?</span></li>
+                    </ul>
+                </div>
+            </div>
+            <form id="form" name="form" method="post"
+                action="/saggestaoagu/pages/cadastro/profissional/confirmarHorarioDivergenteSISREF.xhtml?cid=2"
+                enctype="application/x-www-form-urlencoded">
+                <input type="hidden" name="form" value="form" />
+                <input type="hidden" name="DTPINFRA_TOKEN" value="1771515234182" />
+                <fieldset class="panel panel-default">
+                    <div class="panel-heading">
+                        <legend class="panel-title">
+                            <span class="ico-docs-layer"></span>Dados do Profissional
+                        </legend>
+                    </div>
+                    <div class="panel-body">
+                        <div class="row">
+                            <div class="col-sm-6">
+                                <div class="form-group"><label for="form:idServidorSIAPE">Matrícula(SIAPE)</label>
+                                    <div><span id="form:idServidorSIAPE">2035843</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-sm-6">
+                                <div class="form-group"><label for="form:nome">Nome do Profissional</label>
+                                    <div><span id="form:nome">RICARDO ALVES DE OLIVEIRA SILVA</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-sm-6">
+                                <div class="form-group"><label for="form:outputIdUOSAG">Lotação SAG</label>
+                                    <div><span id="form:outputIdNomeUOSAG">085211 - </span><span
+                                            id="form:outputNomeUOSAG">SERVICO DE GERENCIAMENTO DE BENEFICIOS</span>
+
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="form-group"><label for="form:outputIdUOSISREF">Lotação SISREF</label>
+                                    <div><span id="form:outputIdUOSISREF">08521 - </span><span
+                                            id="form:outputNomeUOSISREF">SERVIÇO DE BENEFÍCIOS</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </fieldset>
+
+                <fieldset class="panel panel-default">
+                    <div class="panel-heading">
+                        <legend class="panel-title"> Horário Funcionamento da
+                            Unidade Orgânica </legend>
+                    </div>
+                    <div class="panel-body">
+                        <div class="row">
+                            <div class="col-sm-6">
+                                <div class="form-group"><label for="form:outputHrFuncionamento">Horário de
+                                        Funcionamento</label>
+                                    <div><span id="form:outputHrFuncionamento">07:00 às 19:00</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-sm-6">
+                                <div class="form-group"><label for="form:outputHrAtendimento">Horário de
+                                        Atendimento</label>
+                                    <div><span id="form:outputHrAtendimento">07:00 às 19:00</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </fieldset>
+
+                <div class="row">
+                    <div class="col-sm-6">
+                        <fieldset class="panel panel-default">
+                            <div class="panel-heading">
+                                <legend class="panel-title"> Horário do profissional no
+                                    SISREF </legend>
+                            </div>
+                            <div class="panel-body">
+                                <div class="row">
+                                    <div class="col-sm-6">
+                                        <div class="form-group"><label
+                                                for="form:outputHrProfissionalSISREF">Horário</label>
+                                            <div>08:00 às 17:00
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <div class="form-group"><label
+                                                for="form:outputHrIntervaloAtendimento">Intervalo</label>
+                                            <label>Intervalo</label>
+                                            <div>13:00 às 14:00
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </fieldset>
+                    </div>
+                    <div class="col-sm-6">
+                        <fieldset class="panel panel-default">
+                            <div class="panel-heading">
+                                <legend class="panel-title"> Horário do profissional no
+                                    SAG </legend>
+                            </div>
+                            <div class="panel-body">
+                                <div class="row">
+                                    <div class="col-sm-6">
+                                        <div class="form-group"><label for="form:outputHrProfissional">Horário</label>
+                                            <div>08:00 às 18:00
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <div class="form-group"><label
+                                                for="form:outputHrIntervaloProfissional">Intervalo</label>
+                                            <div>13:00 às 15:00
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </fieldset>
+                    </div>
+                </div>
+
+                <div><button id="form:botaoCancelar" name="form:botaoCancelar"
+                        class="ui-button ui-widget ui-state-default ui-corner-all ui-button-text-icon-left ui-priority-secondary"
+                        onclick="" type="submit"><span
+                            class="ui-button-icon-left ui-icon ui-c fa ico-cancel"></span><span
+                            class="ui-button-text ui-c">Voltar</span></button>
+                    <script id="form:botaoCancelar_s"
+                        type="text/javascript">PrimeFaces.cw("CommandButton", "widget_form_botaoCancelar", { id: "form:botaoCancelar" });</script>
+                    <button id="form:botaoConfirmar" name="form:botaoConfirmar"
+                        class="ui-button ui-widget ui-state-default ui-corner-all ui-button-text-icon-left ui-priority-primary pull-right"
+                        onclick="" type="submit"><span
+                            class="ui-button-icon-left ui-icon ui-c fa ico-confirm"></span><span
+                            class="ui-button-text ui-c">Confirmar</span></button>
+                    <script id="form:botaoConfirmar_s"
+                        type="text/javascript">PrimeFaces.cw("CommandButton", "widget_form_botaoConfirmar", { id: "form:botaoConfirmar" });</script>
+                </div>
+                <div class="modal fade" role="dialog" id="loaderBlock">
+                    <div class="modal-dialog dtp-modal-block" role="document">
+                        <div class="modal-content">
+                            <div class="row">
+                                <div class="col-sm-12 text-center">
+                                    <div class="text-center ">
+                                        <h4>
+                                            <span class="ico-spinner revolve"></span>Carregando informações...
+                                        </h4>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div><input type="hidden" name="javax.faces.ViewState" id="javax.faces.ViewState"
+                    value="2414068352228143428:-2768958146698957172" autocomplete="off" />
+            </form>
+            <form id="formDlgListagemServicosObrigatoriosNaoAtendidos"
+                name="formDlgListagemServicosObrigatoriosNaoAtendidos" method="post"
+                action="/saggestaoagu/pages/cadastro/profissional/confirmarHorarioDivergenteSISREF.xhtml?cid=2"
+                enctype="application/x-www-form-urlencoded">
+                <input type="hidden" name="formDlgListagemServicosObrigatoriosNaoAtendidos"
+                    value="formDlgListagemServicosObrigatoriosNaoAtendidos" />
+                <input type="hidden" name="DTPINFRA_TOKEN" value="1771515234182" />
+                <div id="formDlgListagemServicosObrigatoriosNaoAtendidos:dlgServicosObrigatoriosNaoAtendidos"
+                    class="ui-dialog ui-widget ui-widget-content ui-corner-all ui-shadow ui-hidden-container modalComScroll">
+                    <div class="ui-dialog-titlebar ui-widget-header ui-helper-clearfix ui-corner-top"><span
+                            id="formDlgListagemServicosObrigatoriosNaoAtendidos:dlgServicosObrigatoriosNaoAtendidos_title"
+                            class="ui-dialog-title">Serviços obrigatórios não atendidos</span></div>
+                    <div class="ui-dialog-content ui-widget-content">
+                        <div id="formDlgListagemServicosObrigatoriosNaoAtendidos:msgsDialog"
+                            class="ui-messages ui-widget dtp-messages" aria-live="polite">
+                            <div class="ui-messages-warn ui-corner-all"><span class="ui-messages-warn-icon"></span>
+                                <ul>
+                                    <li><span class="ui-messages-warn-summary">Horário diverge dos dados do servidor
+                                            oriundo do SISREF. Confirma a atualização dos dados do SAG com os dados do
+                                            SISREF?</span></li>
+                                </ul>
+                            </div>
+                        </div><span id="formDlgListagemServicosObrigatoriosNaoAtendidos:pnlModalServicosObrigatorios">
+                            <div class="row">
+                                <div class="col-md-6 col-lg-3">
+                                    <div class="form-group">
+                                        <label>Período</label>
+                                        <div> a </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <fieldset class="panel panel-default">
+                                <div class="panel-body">
+                                </div>
+                            </fieldset>
+                        </span>
+                        <div id="formDlgListagemServicosObrigatoriosNaoAtendidos:pnlDias"
+                            class="ui-overlaypanel ui-widget ui-widget-content ui-overlay-hidden ui-corner-all ui-shadow"
+                            style="width:150px;">
+                            <div class="ui-overlaypanel-content">
+                                <div id="formDlgListagemServicosObrigatoriosNaoAtendidos:j_idt165"
+                                    class="ui-datatable ui-widget ui-datatable-scrollable">
+                                    <div class="ui-widget-header ui-datatable-scrollable-header">
+                                        <div class="ui-datatable-scrollable-header-box">
+                                            <table role="grid">
+                                                <thead
+                                                    id="formDlgListagemServicosObrigatoriosNaoAtendidos:j_idt165_head">
+                                                    <tr role="row">
+                                                        <th id="formDlgListagemServicosObrigatoriosNaoAtendidos:j_idt165:j_idt166"
+                                                            class="ui-state-default" role="columnheader"
+                                                            aria-label="Dias"><span class="ui-column-title">Dias</span>
+                                                        </th>
+                                                    </tr>
+                                                </thead>
+                                            </table>
+                                        </div>
+                                    </div>
+                                    <div class="ui-datatable-scrollable-body" tabindex="-1" style="height:100px">
+                                        <table role="grid">
+                                            <tbody id="formDlgListagemServicosObrigatoriosNaoAtendidos:j_idt165_data"
+                                                class="ui-datatable-data ui-widget-content">
+                                                <tr class="ui-widget-content ui-datatable-empty-message">
+                                                    <td colspan="1">No records found.</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <div class="ui-widget-header ui-datatable-scrollable-footer">
+                                        <div class="ui-datatable-scrollable-footer-box">
+                                            <table role="grid"></table>
+                                        </div>
+                                    </div><input type="hidden"
+                                        id="formDlgListagemServicosObrigatoriosNaoAtendidos:j_idt165_scrollState"
+                                        name="formDlgListagemServicosObrigatoriosNaoAtendidos:j_idt165_scrollState"
+                                        autocomplete="off" value="0,0" />
+                                </div>
+                                <script id="formDlgListagemServicosObrigatoriosNaoAtendidos:j_idt165_s"
+                                    type="text/javascript">$(function () { PrimeFaces.cw("DataTable", "widget_formDlgListagemServicosObrigatoriosNaoAtendidos_j_idt165", { id: "formDlgListagemServicosObrigatoriosNaoAtendidos:j_idt165", scrollable: true, liveScroll: false, scrollStep: 0, scrollLimit: 0, scrollHeight: "100", liveScrollBuffer: 0 }); });</script>
+                            </div>
+                        </div>
+                        <script id="formDlgListagemServicosObrigatoriosNaoAtendidos:pnlDias_s"
+                            type="text/javascript">$(function () { PrimeFaces.cw("OverlayPanel", "opDias", { id: "formDlgListagemServicosObrigatoriosNaoAtendidos:pnlDias", my: "top bottom", showCloseIcon: true }); });</script>
+
+                        <div class="dtp-button-group"><button
+                                id="formDlgListagemServicosObrigatoriosNaoAtendidos:j_idt169"
+                                name="formDlgListagemServicosObrigatoriosNaoAtendidos:j_idt169"
+                                class="ui-button ui-widget ui-state-default ui-corner-all ui-button-text-icon-left ui-priority-secondary  pull-left"
+                                onclick="PrimeFaces.bcn(this,event,[function(event){PF('dlgServicosObrigatoriosNaoAtendidos').hide()},function(event){PrimeFaces.ab({s:&quot;formDlgListagemServicosObrigatoriosNaoAtendidos:j_idt169&quot;,p:&quot;formDlgListagemServicosObrigatoriosNaoAtendidos:j_idt169&quot;});return false;}]);"
+                                type="submit"><span class="ui-button-icon-left ui-icon ui-c fa ico-cancel"></span><span
+                                    class="ui-button-text ui-c">Cancelar</span></button>
+                            <script id="formDlgListagemServicosObrigatoriosNaoAtendidos:j_idt169_s"
+                                type="text/javascript">PrimeFaces.cw("CommandButton", "widget_formDlgListagemServicosObrigatoriosNaoAtendidos_j_idt169", { id: "formDlgListagemServicosObrigatoriosNaoAtendidos:j_idt169" });</script>
+                        </div>
+                        <div class="modal fade" role="dialog" id="loaderBlockDias">
+                            <div class="modal-dialog dtp-modal-block" role="document">
+                                <div class="modal-content">
+                                    <div class="row">
+                                        <div class="col-sm-12 text-center">
+                                            <div class="text-center ">
+                                                <h4>
+                                                    <span class="ico-spinner revolve"></span>Carregando dias...
+                                                </h4>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <script id="formDlgListagemServicosObrigatoriosNaoAtendidos:dlgServicosObrigatoriosNaoAtendidos_s"
+                    type="text/javascript">$(function () { PrimeFaces.cw("Dialog", "dlgServicosObrigatoriosNaoAtendidos", { id: "formDlgListagemServicosObrigatoriosNaoAtendidos:dlgServicosObrigatoriosNaoAtendidos", resizable: false, modal: true, width: "80%", closeOnEscape: true, responsive: true, onShow: function () { PF('dlgServicosObrigatoriosNaoAtendidos').initPosition(); } }); });</script>
+                <script
+                    type="text/javascript">showDialogListagemServicosObrigatoriosNaoAtendidos = function () { PrimeFaces.ab({ s: "formDlgListagemServicosObrigatoriosNaoAtendidos:rcShowDialogListagemServicosObrigatoriosNaoAtendidos", f: "formDlgListagemServicosObrigatoriosNaoAtendidos", p: "formDlgListagemServicosObrigatoriosNaoAtendidos:rcShowDialogListagemServicosObrigatoriosNaoAtendidos", u: "formDlgListagemServicosObrigatoriosNaoAtendidos:dlgServicosObrigatoriosNaoAtendidos", onco: function (xhr, status, args) { PF('dlgServicosObrigatoriosNaoAtendidos').show();; }, pa: arguments[0] }); }</script>
+                <input type="hidden" name="javax.faces.ViewState" id="javax.faces.ViewState"
+                    value="2414068352228143428:-2768958146698957172" autocomplete="off" />
+            </form>
+        </div>
+    </div>
+
+    <!-- inicio do footer -->
+    <footer class="footer navbar-default navbar-fixed-bottom hidden-print">
+        <div class="container-fluid">
+            <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+                <ul class="nav navbar-nav" data-sm-skip="skip">
+                    <li>
+                        <button id="btn-info" class="btn btn-primary" data-toggle="popover-x"
+                            data-target="#info-popover" data-placement="top top-left">
+                            <span class="ico-info-c"></span> Info</button>
+
+                        <div id="info-popover" class="popover popover-info">
+                            <div class="arrow"></div>
+                            <div class="popover-title">
+                                <span class="close pull-right ico-cancel" data-dismiss="popover-x"></span>
+                                <span class="ico-info-c"></span> Informações
+                            </div>
+                            <div class="popover-content">
+                                <dl class="dl-horizontal">
+                                    <dt>Ambiente</dt>
+                                    <dd>
+                                    </dd>
+
+                                    <dt>Versão</dt>
+                                    <dd>6.41.0
+                                    </dd>
+
+                                    <dt>Data do Build</dt>
+                                    <dd>08/02/2026 17:15:01
+                                    </dd>
+                                </dl>
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+                <ul class="nav navbar-nav navbar-right" data-sm-skip="skip">
+                    <li>
+                        <button id="btn-help" class="btn btn-primary" data-toggle="popover-x"
+                            data-target="#ajuda-popover" data-placement="top top-right">
+                            <span class="ico-help-c"></span> Ajuda</button>
+                        <div id="ajuda-popover" class="popover popover-info">
+                            <div class="arrow"></div>
+                            <div class="popover-title">
+                                <span class="close pull-right ico-cancel" data-dismiss="popover-x"></span>
+                                <span class="ico-help-c"></span> Ajuda
+                            </div>
+                            <div class="popover-content">
+                                <p>Ajuda para SAG Gestão - Módulo Gerencial</p>
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </footer>
+    <!-- ********************************* Altera&ccedil;&otilde;es idVisual  ********************************* --><span
+        id="javascript_section">
+        <!-- Scripts -->
+        <script type="text/javascript" src="/saggestaoagu/assets/js/bootstrap.min.js"></script>
+        <script type="text/javascript" src="/saggestaoagu/assets/js/bootstrap-popover-x.min.js"></script>
+        <!-- Menus -->
+        <script type="text/javascript" src="/saggestaoagu/assets/js/jquery/jquery.smartmenus.js"></script>
+        <script type="text/javascript" src="/saggestaoagu/assets/js/jquery/jquery.smartmenus.bootstrap.js"></script>
+        <script type="text/javascript" src="/saggestaoagu/assets/js/jquery/jquery.smartmenus.keyboard.js"></script>
+        <!-- Utils -->
+        <script type="text/javascript" src="/saggestaoagu/assets/js/jquery/datepicker-pt-BR.js"></script>
+        <script type="text/javascript" src="/saggestaoagu/assets/js/jquery/keypress.js"></script>
+        <script type="text/javascript" src="/saggestaoagu/assets/js/intro.js"></script>
+        <script type="text/javascript" src="/saggestaoagu/assets/js/tema.js"></script>
+        <script type="text/javascript" src="/saggestaoagu/assets/js/custom.js"></script>
+        <!-- Scripts espec&iacute;ficos do projeto e/ou das p&aacute;ginas -->
+        <script type="text/javascript" src="/saggestaoagu/js/sag.js"></script>
+    </span>
+</body>
+
+</html>

@@ -1,0 +1,5 @@
+"C:\Users\gib_s\.jdks\openjdk-20.0.1\bin\keytool"  -importcert -file "C:\Users\gib_s\OneDrive\Robos\Java\Autenticacao\certificado.cer"  –alias dataprev –keystore “C:\Users\gib_s\.jdks\openjdk-20.0.1\lib\security\cacerts”
+
+"C:\Users\gib_s\.jdks\openjdk-20.0.1\bin\\keytool"  -importcert -file "C:\Users\gib_s\OneDrive\Robos\Java\Autenticacao\portalsibe.cer"  –alias portalsibe –keystore “C:\Users\gib_s\.jdks\openjdk-20.0.1\lib\security\cacerts”
+
+Senha:changeit
