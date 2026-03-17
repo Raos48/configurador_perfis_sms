@@ -8,17 +8,19 @@ keep-alive da sessão e recuperação automática em caso de falha.
 
 import time
 import logging
-import requests
-import urllib3
-from playwright.sync_api import sync_playwright, Page
+from playwright.sync_api import sync_playwright, Page, Browser, BrowserContext
 
-from config import SESSION_KEEPALIVE_INTERVAL, BROWSER_HEADLESS
-
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+from config import (
+    SESSION_KEEPALIVE_INTERVAL, 
+    BROWSER_HEADLESS,
+    SAGGESTAO_CONSULTATION_URL,
+    PLAYWRIGHT_DEFAULT_TIMEOUT
+)
+from auth import SaggestaoAuth
 
 logger = logging.getLogger("RPA.SessionManager")
 
-CONSULTATION_URL = "http://psagapr01/saggestaoagu/pages/cadastro/profissional/consultar.xhtml"
+# Seletor do input SIAPE, usado para verificar se a página carregou corretamente
 SIAPE_FIELD_SELECTOR = 'input[name="form\\:idMskSiape"]'
 
 
@@ -28,16 +30,16 @@ class SaggestaoSessionManager:
 
     Responsabilidades:
     - Manter browser aberto e sessão ativa entre operações
-    - Executar keep-alive periódico (busca fictícia) para evitar timeout
+    - Executar keep-alive não intrusivo para evitar timeout
     - Detectar queda de sessão e recuperar automaticamente
     - Encerrar recursos de forma limpa no shutdown
     """
 
     def __init__(self):
         self._playwright = None
-        self._browser = None
-        self._context = None
-        self._page = None
+        self._browser: Browser | None = None
+        self._context: BrowserContext | None = None
+        self._page: Page | None = None
         self._last_activity_time = 0.0
         self._active = False
 
@@ -46,7 +48,7 @@ class SaggestaoSessionManager:
     # ============================================
 
     def start(self):
-        """Inicia o Playwright e estabelece sessao inicial com o SAGGESTAO."""
+        """Inicia o Playwright e estabelece sessão inicial com o SAGGESTAO."""
         logger.info("Iniciando SessionManager...")
         self._playwright = sync_playwright().start()
         self._establish_session()
@@ -82,124 +84,89 @@ class SaggestaoSessionManager:
         logger.info("SessionManager encerrado.")
 
     def _establish_session(self):
-        """Obtem JSESSIONID, lanca browser, injeta cookie, navega para consulta."""
-        jsessionid = self._obter_jsessionid()
-        if not jsessionid:
-            raise Exception("Falha ao obter JSESSIONID do servidor local.")
+        """Lança browser, obtém contexto autenticado e navega para consulta."""
+        try:
+            # Lança browser se não existe ou desconectou
+            if self._browser is None or not self._browser.is_connected():
+                logger.info(f"Iniciando navegador Chromium (headless={BROWSER_HEADLESS})...")
+                self._browser = self._playwright.chromium.launch(headless=BROWSER_HEADLESS)
 
-        # Lanca browser se nao existe ou desconectou
-        if self._browser is None or not self._browser.is_connected():
-            logger.info(f"Iniciando navegador Chromium (headless={BROWSER_HEADLESS})...")
-            self._browser = self._playwright.chromium.launch(headless=BROWSER_HEADLESS)
+            # Fecha context antigo se existir
+            if self._context:
+                try:
+                    self._context.close()
+                except Exception:
+                    pass
 
-        # Fecha context antigo se existir
-        if self._context:
-            try:
-                self._context.close()
-            except Exception:
-                pass
+            # Cria novo contexto AUTENTICADO via auth.py
+            logger.info("Configurando contexto autenticado...")
+            self._context = SaggestaoAuth.configurar_contexto(self._browser)
 
-        # Cria novo context com cookie
-        logger.info("Injetando cookie JSESSIONID...")
-        self._context = self._browser.new_context(ignore_https_errors=True)
-        self._context.add_cookies([{
-            "name": "JSESSIONID",
-            "value": jsessionid,
-            "url": "http://psagapr01"
-        }])
+            # Cria page e navega
+            self._page = self._context.new_page()
+            self._page.set_default_timeout(PLAYWRIGHT_DEFAULT_TIMEOUT)
+            self._page.set_viewport_size({"width": 1024, "height": 768})
 
-        # Cria page e navega
-        self._page = self._context.new_page()
-        self._page.set_default_timeout(60000)
-        self._page.set_viewport_size({"width": 1024, "height": 768})
+            self._navigate_to_consultation()
+            self._last_activity_time = time.time()
 
-        self._navigate_to_consultation()
-        self._last_activity_time = time.time()
+        except Exception as e:
+            logger.error(f"Falha ao estabelecer sessão: {e}")
+            raise
 
     # ============================================
-    # Obter JSESSIONID
-    # ============================================
-
-    def _obter_jsessionid(self):
-        """Obtem JSESSIONID do servidor local (localhost:48000). Tenta ate 4 vezes."""
-        logger.info("Iniciando obtencao de JSESSIONID...")
-        url = "http://localhost:48000"
-        headers = {'Comando': 'NovaSessao', 'Sistema': 'SAGGESTAO'}
-        max_retries = 4
-
-        for attempt in range(1, max_retries + 1):
-            logger.info(f"Tentativa {attempt}/{max_retries} obtendo sessao de {url}...")
-            try:
-                response = requests.get(url, headers=headers, verify=False, timeout=10)
-                if response.status_code == 200:
-                    data = response.json()
-                    jsessionid = data.get('JSESSIONID')
-                    if jsessionid:
-                        logger.info(f"JSESSIONID obtido com sucesso: {jsessionid[:10]}...")
-                        return jsessionid
-                else:
-                    logger.warning(f"Resposta invalida na tentativa {attempt}: Status {response.status_code}")
-            except Exception as e:
-                logger.error(f"Erro na tentativa {attempt}: {e}")
-
-            if attempt < max_retries:
-                logger.info("Aguardando 2 segundos antes da proxima tentativa...")
-                time.sleep(2)
-
-        logger.critical("Falha ao obter JSESSIONID apos todas as tentativas.")
-        return None
-
-    # ============================================
-    # Navegacao
+    # Navegação
     # ============================================
 
     def _navigate_to_consultation(self):
-        """Navega para a pagina de consulta, tratando selecao de dominio."""
-        logger.info(f"Navegando para URL de consulta: {CONSULTATION_URL}")
+        """Navega para a página de consulta, tratando seleção de domínio."""
+        logger.info(f"Navegando para URL de consulta: {SAGGESTAO_CONSULTATION_URL}")
         try:
-            self._page.goto(CONSULTATION_URL, timeout=120000)
-            logger.info("Navegacao inicial concluida.")
+            self._page.goto(SAGGESTAO_CONSULTATION_URL, timeout=PLAYWRIGHT_DEFAULT_TIMEOUT)
+            logger.info("Navegação inicial concluída.")
         except Exception as e:
-            logger.warning(f"Aviso durante navegacao: {e}")
+            logger.warning(f"Aviso durante navegação inicial: {e}")
 
-        # Trata selecao de dominio
+        # Trata seleção de domínio (se aparecer)
         try:
             if self._page.locator("select#domains").is_visible(timeout=5000):
-                logger.info("Pagina de selecao de dominio DETECTADA. Selecionando UO:01.001.PRES...")
+                logger.info("Página de seleção de domínio DETECTADA. Selecionando UO:01.001.PRES...")
                 self._page.select_option("select#domains", "UO:01.001.PRES")
-                logger.info("Clicando no botao 'Enviar'...")
+                logger.info("Clicando no botão 'Enviar'...")
                 self._page.get_by_role("button", name="Enviar").click()
                 self._page.wait_for_load_state("domcontentloaded")
                 time.sleep(2)
-                logger.info("Selecao de dominio concluida.")
+                logger.info("Seleção de domínio concluída.")
             else:
-                logger.info("Pagina de selecao de dominio NAO detectada. Seguindo fluxo normal.")
+                logger.debug("Página de seleção de domínio NÃO detectada.")
         except Exception as e:
-            logger.debug(f"Excecao nao-critica ao verificar selecao de dominio: {e}")
+            logger.debug(f"Exceção não-crítica ao verificar seleção de domínio: {e}")
 
-        # Forca navegacao se nao esta na pagina de consulta
+        # Força navegação se não caiu na página de consulta
         if "consultar.xhtml" not in self._page.url:
-            logger.warning(f"Redirecionado para: {self._page.url}. Forcando navegacao para consulta...")
+            logger.warning(f"Redirecionado para: {self._page.url}. Forçando navegação para consulta...")
             try:
-                self._page.goto(CONSULTATION_URL, timeout=60000)
-                logger.info("Navegacao forcada concluida.")
+                self._page.goto(SAGGESTAO_CONSULTATION_URL, timeout=30000)
             except Exception as e:
-                logger.error(f"Erro ao forcar navegacao: {e}")
+                logger.error(f"Erro ao forçar navegação: {e}")
 
-        # Verifica se carregou
+        # Verifica carregamento
         try:
             self._page.wait_for_selector(SIAPE_FIELD_SELECTOR, timeout=30000)
-            logger.info("Pagina de consulta carregada com SUCESSO.")
+            logger.info("Página de consulta carregada com SUCESSO.")
         except Exception:
-            logger.error(f"Falha ao carregar pagina de consulta. URL: {self._page.url}")
-            raise Exception("Pagina de consulta nao carregou corretamente.")
+            logger.error(f"Falha ao carregar página de consulta. URL: {self._page.url}")
+            raise Exception("Página de consulta não carregou corretamente.")
 
     def navigate_to_consultation(self):
-        """Navega de volta para a pagina de consulta apos uma operacao."""
+        """Navega de volta para a página de consulta após uma operação."""
         try:
-            self._page.goto(CONSULTATION_URL, timeout=30000)
+            # Só navega se já não estiver lá
+            if "consultar.xhtml" not in self._page.url:
+                self._page.goto(SAGGESTAO_CONSULTATION_URL, timeout=30000)
+            
             self._page.wait_for_selector(SIAPE_FIELD_SELECTOR, timeout=15000)
-            logger.debug("Navegou de volta para pagina de consulta.")
+            logger.debug("Navegou de volta para página de consulta.")
         except Exception as e:
             logger.warning(f"Falha ao navegar para consulta: {e}")
 
@@ -209,11 +176,11 @@ class SaggestaoSessionManager:
 
     def ensure_ready(self) -> Page:
         """
-        Garante que a sessao esta pronta para uso. Retorna o Page.
-        Detecta sessao invalida e recupera automaticamente.
+        Garante que a sessão está pronta para uso. Retorna o Page.
+        Detecta sessão inválida e recupera automaticamente.
         """
         if not self._active or self._page is None:
-            logger.info("Sessao nao ativa. Estabelecendo nova sessao...")
+            logger.info("Sessão não ativa. Estabelecendo nova sessão...")
             if self._playwright is None:
                 self._playwright = sync_playwright().start()
             self._establish_session()
@@ -222,35 +189,29 @@ class SaggestaoSessionManager:
 
         # Health check
         if not self._is_session_healthy():
-            logger.warning("Sessao invalida detectada. Recuperando...")
+            logger.warning("Sessão inválida detectada. Tentando recuperar...")
             self._recover_session()
             return self._page
 
         # Keep-alive se ocioso por muito tempo
         elapsed = time.time() - self._last_activity_time
         if elapsed >= SESSION_KEEPALIVE_INTERVAL:
-            logger.info(f"Sessao ociosa por {elapsed:.0f}s. Executando keep-alive...")
+            logger.info(f"Sessão ociosa por {elapsed:.0f}s. Executando keep-alive...")
             self._perform_keepalive()
 
         return self._page
 
     def mark_activity(self):
-        """Registra que uma operacao real foi executada (reseta timer de keep-alive)."""
+        """Registra que uma operação real foi executada (reseta timer de keep-alive)."""
         self._last_activity_time = time.time()
 
     # ============================================
-    # Deteccao de Saude e Recuperacao
+    # Detecção de Saúde e Recuperação
     # ============================================
 
     def _is_session_healthy(self) -> bool:
         """
-        Verifica se a sessao do browser ainda e valida.
-
-        Checagens:
-        1. Browser conectado
-        2. Page nao fechada
-        3. URL correta (nao redirecionado para login)
-        4. Campo SIAPE presente (sessao nao expirou)
+        Verifica se a sessão do browser ainda é válida.
         """
         try:
             if self._browser is None or not self._browser.is_connected():
@@ -262,29 +223,33 @@ class SaggestaoSessionManager:
                 return False
 
             current_url = self._page.url
+            # Se não está em consulta/alteração, pode ter sido redirecionado para login
             if "consultar.xhtml" not in current_url and "alterar.xhtml" not in current_url:
                 logger.warning(f"Health check: URL inesperada: {current_url}")
                 return False
 
-            # Verificacao rapida do campo SIAPE (apenas na pagina de consulta)
+            # Verificação rápida do campo SIAPE (apenas na página de consulta)
             if "consultar.xhtml" in current_url:
                 try:
-                    self._page.wait_for_selector(SIAPE_FIELD_SELECTOR, timeout=5000)
+                    state = self._page.locator(SIAPE_FIELD_SELECTOR).is_visible(timeout=5000)
+                    if not state:
+                        logger.warning("Health check: Campo SIAPE não visível.")
+                        return False
                 except Exception:
-                    logger.warning("Health check: Campo SIAPE nao encontrado.")
+                    logger.warning("Health check: Exceção ao verificar campo SIAPE.")
                     return False
 
             return True
 
         except Exception as e:
-            logger.warning(f"Health check falhou com excecao: {e}")
+            logger.warning(f"Health check falhou com exceção: {e}")
             return False
 
     def _recover_session(self):
-        """Recupera sessao: fecha context antigo, obtem novo JSESSIONID, re-navega."""
-        logger.info("Iniciando recuperacao de sessao...")
+        """Recupera sessão: fecha context antigo e re-autentica."""
+        logger.info("Iniciando recuperação de sessão...")
 
-        # Fecha context/page antigos (browser fica aberto se possivel)
+        # Fecha context/page antigos
         try:
             if self._context:
                 self._context.close()
@@ -301,36 +266,28 @@ class SaggestaoSessionManager:
                 pass
             self._browser = None
 
-        # Re-estabelece sessao
-        self._establish_session()
-        logger.info("Sessao recuperada com SUCESSO.")
+        # Re-estabelece sessão
+        try:
+            self._establish_session()
+            logger.info("Sessão recuperada com SUCESSO.")
+        except Exception as e:
+            logger.error(f"Falha crítica na recuperação de sessão: {e}")
+            raise
 
     # ============================================
-    # Keep-Alive
+    # Keep-Alive Otimizado
     # ============================================
 
     def _perform_keepalive(self):
         """
-        Mantem a sessao ativa executando uma busca ficticia na pagina de consulta.
-        Preenche SIAPE "0000000", pesquisa, e volta a pagina limpa.
+        Mantém a sessão ativa recarregando a página de consulta.
+        Isso renova o tempo de expiração no servidor sem disparar buscas fictícias.
         """
         try:
-            # Garante que esta na pagina de consulta
-            if "consultar.xhtml" not in self._page.url:
-                self._page.goto(CONSULTATION_URL, timeout=30000)
-                self._page.wait_for_selector(SIAPE_FIELD_SELECTOR, timeout=15000)
-
-            # Busca ficticia
-            self._page.fill(SIAPE_FIELD_SELECTOR, "0000000")
-            self._page.click('role=button[name="Pesquisar"]')
-            time.sleep(2)
-
-            # Volta a pagina limpa
-            self._page.goto(CONSULTATION_URL, timeout=30000)
+            logger.debug("Executando keep-alive (reload)...")
+            self._page.reload(timeout=PLAYWRIGHT_DEFAULT_TIMEOUT)
             self._page.wait_for_selector(SIAPE_FIELD_SELECTOR, timeout=15000)
-
             self._last_activity_time = time.time()
             logger.info("Keep-alive executado com SUCESSO.")
-
         except Exception as e:
-            logger.warning(f"Keep-alive falhou: {e}. Sessao pode ter expirado.")
+            logger.warning(f"Keep-alive falhou: {e}. Sessão pode ter expirado.")

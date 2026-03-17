@@ -13,8 +13,17 @@ load_dotenv()
 # ============================================
 # Configurações da API SIGA
 # ============================================
-# URL base da API do Sistema SIGA (sem barra final)
-SIGA_API_URL = os.environ.get("SIGA_API_URL", "http://localhost:8000")
+# Ambiente ativo: "local" usa SIGA_API_URL, "cloud" usa SIGA_API_URL_CLOUD
+# Para alternar, edite API_ENV no arquivo .env e reinicie o serviço.
+_API_ENV = os.environ.get("API_ENV", "local").lower()
+_SIGA_API_URL_LOCAL = os.environ.get("SIGA_API_URL", "http://localhost:8000")
+_SIGA_API_URL_CLOUD = os.environ.get(
+    "SIGA_API_URL_CLOUD",
+    "https://sgben-sigabackend.bpbeee.easypanel.host"
+)
+
+API_ENV = _API_ENV
+SIGA_API_URL = _SIGA_API_URL_CLOUD if _API_ENV == "cloud" else _SIGA_API_URL_LOCAL
 
 # Credenciais da conta staff usada pelo RPA
 # IMPORTANTE: A conta precisa ter is_staff=True no Django
@@ -49,7 +58,7 @@ POLLING_INTERVAL_IDLE = int(os.environ.get("POLLING_INTERVAL_IDLE", "10"))
 SESSION_KEEPALIVE_INTERVAL = int(os.environ.get("SESSION_KEEPALIVE_INTERVAL", "240"))
 
 # Executar navegador em modo headless (sem janela visível)
-BROWSER_HEADLESS = os.environ.get("BROWSER_HEADLESS", "true").lower() == "true"
+BROWSER_HEADLESS = os.environ.get("BROWSER_HEADLESS", "true").lower() == "false"
 
 # Timeout padrão para operações do Playwright (em milissegundos)
 PLAYWRIGHT_DEFAULT_TIMEOUT = int(os.environ.get("PLAYWRIGHT_DEFAULT_TIMEOUT", "60000"))

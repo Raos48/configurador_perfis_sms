@@ -6,6 +6,7 @@ Gerencia autenticação JWT com refresh automático de tokens.
 import time
 import logging
 import requests
+from typing import Optional, Dict, List, Any
 
 # Logger será configurado pelo módulo principal (servico_rpa.py)
 logger = logging.getLogger("RPA.SigaClient")
@@ -23,15 +24,15 @@ class SigaApiClient:
         self.base_url = base_url.rstrip("/")
         self.email = email
         self.password = password
-        self.access_token = None
-        self.refresh_token = None
-        self.token_obtido_em = 0  # timestamp de quando o access token foi obtido
+        self.access_token: Optional[str] = None
+        self.refresh_token: Optional[str] = None
+        self.token_obtido_em = 0.0  # timestamp
 
     # ============================================
     # Autenticação JWT
     # ============================================
 
-    def _autenticar(self):
+    def autenticar(self) -> None:
         """
         Obtém novos tokens JWT via POST /api/token/.
         Levanta exceção se falhar.
@@ -63,7 +64,7 @@ class SigaApiClient:
             logger.error("Timeout ao tentar autenticar na API SIGA")
             raise
 
-    def _refresh_token_jwt(self):
+    def _refresh_token_jwt(self) -> bool:
         """
         Renova o access token via POST /api/token/refresh/.
         Retorna True se bem-sucedido, False se falhar.
@@ -96,13 +97,13 @@ class SigaApiClient:
             logger.warning(f"Erro ao renovar token: {e}")
             return False
 
-    def _garantir_token_valido(self):
+    def _garantir_token_valido(self) -> None:
         """
         Garante que temos um access token válido.
         Faz refresh proativo se o token tem mais de 12 minutos (validade: 15 min).
         """
         if not self.access_token:
-            self._autenticar()
+            self.autenticar()
             return
 
         # Refresh proativo: se o token tem mais de 12 minutos, renova
@@ -111,13 +112,13 @@ class SigaApiClient:
             logger.debug("Token próximo de expirar, renovando proativamente...")
             if not self._refresh_token_jwt():
                 logger.info("Refresh falhou, fazendo autenticação completa...")
-                self._autenticar()
+                self.autenticar()
 
     # ============================================
     # Request genérico com retry de auth
     # ============================================
 
-    def _request(self, method: str, endpoint: str, data: dict = None) -> dict | list:
+    def _request(self, method: str, endpoint: str, data: Optional[Dict] = None) -> Any:
         """
         Executa uma request HTTP com autenticação JWT.
 
@@ -158,7 +159,7 @@ class SigaApiClient:
                     logger.info("Token expirado (401). Tentando renovar...")
                     if not self._refresh_token_jwt():
                         logger.info("Refresh falhou. Re-autenticando...")
-                        self._autenticar()
+                        self.autenticar()
                     headers = {"Authorization": f"Bearer {self.access_token}"}
                     continue
 
@@ -180,26 +181,17 @@ class SigaApiClient:
     # Endpoints de Polling (buscar pendentes)
     # ============================================
 
-    def buscar_pendentes_bloqueio(self) -> list:
+    def buscar_pendentes_bloqueio(self) -> List[Dict[str, Any]]:
         """
         Busca bloqueios com status BLOQUEIO_PROCESSAMENTO.
-
         GET /api/bloqueios/pendentes-bloqueio/
-
-        Returns:
-            Lista de dicts com dados dos bloqueios pendentes.
-            Cada item contém: id, servidor (com siape), codigo_unidade, etc.
         """
         return self._request("GET", "/api/bloqueios/pendentes-bloqueio/")
 
-    def buscar_pendentes_desbloqueio(self) -> list:
+    def buscar_pendentes_desbloqueio(self) -> List[Dict[str, Any]]:
         """
         Busca bloqueios com status DESBLOQUEIO_PROCESSAMENTO.
-
         GET /api/bloqueios/pendentes-desbloqueio/
-
-        Returns:
-            Lista de dicts com dados dos desbloqueios pendentes.
         """
         return self._request("GET", "/api/bloqueios/pendentes-desbloqueio/")
 
@@ -207,19 +199,10 @@ class SigaApiClient:
     # Endpoints de Confirmação (devolver resultado)
     # ============================================
 
-    def confirmar_bloqueio(self, bloqueio_id: int, sucesso: bool, erro: str = "") -> dict:
+    def confirmar_bloqueio(self, bloqueio_id: int, sucesso: bool, erro: str = "") -> Dict[str, Any]:
         """
         Confirma resultado da execução de um bloqueio no SAGGESTAO.
-
         POST /api/bloqueios/confirmar-bloqueio/
-
-        Args:
-            bloqueio_id: ID do registro de bloqueio na API SIGA
-            sucesso: True se bloqueio foi executado com sucesso
-            erro: Mensagem de erro (quando sucesso=False)
-
-        Returns:
-            Resposta da API: {"sucesso": bool, "mensagem": str}
         """
         return self._request("POST", "/api/bloqueios/confirmar-bloqueio/", {
             "bloqueio_id": bloqueio_id,
@@ -227,19 +210,10 @@ class SigaApiClient:
             "erro": erro
         })
 
-    def confirmar_desbloqueio(self, bloqueio_id: int, sucesso: bool, erro: str = "") -> dict:
+    def confirmar_desbloqueio(self, bloqueio_id: int, sucesso: bool, erro: str = "") -> Dict[str, Any]:
         """
         Confirma resultado da execução de um desbloqueio no SAGGESTAO.
-
         POST /api/bloqueios/confirmar-desbloqueio/
-
-        Args:
-            bloqueio_id: ID do registro de bloqueio na API SIGA
-            sucesso: True se desbloqueio foi executado com sucesso
-            erro: Mensagem de erro (quando sucesso=False)
-
-        Returns:
-            Resposta da API: {"sucesso": bool, "mensagem": str}
         """
         return self._request("POST", "/api/bloqueios/confirmar-desbloqueio/", {
             "bloqueio_id": bloqueio_id,

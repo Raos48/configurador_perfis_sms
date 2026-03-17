@@ -23,9 +23,6 @@ env/
 *.swp
 *.swo
 
-# Agent config (opcional - não versionável)
-.agent/
-
 # OS
 Thumbs.db
 .DS_Store
@@ -33,3 +30,21 @@ Thumbs.db
 # Java crash logs
 hs_err_pid*.log
 replay_pid*.log
+
+# Claude Code
+.claude/
+.agent/
+
+# Playwright
+playwright-logs/
+.auth/
+
+# Local databases and cache
+*.db
+*.sqlite3
+.pytest_cache/
+.coverage
+
+# Project-specific
+metrics.log
+session_*.json

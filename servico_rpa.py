@@ -17,6 +17,7 @@ Para encerrar: Ctrl+C
 import time
 import logging
 import sys
+from typing import Literal
 
 from config import (
     SIGA_API_URL,
@@ -26,11 +27,13 @@ from config import (
     POLLING_INTERVAL_IDLE,
     LOG_FILE,
     LOG_LEVEL,
+    API_ENV,
 )
 from siga_client import SigaApiClient
 from bloquear_perfis import executar_bloqueio
 from session_manager import SaggestaoSessionManager
 from colored_logger import setup_colored_logging, print_startup_banner, print_shutdown_banner, print_heartbeat
+from metrics import MetricsCollector
 
 # ============================================
 # Configuração de Logging com Cores
@@ -40,106 +43,83 @@ setup_colored_logging(log_level=log_level, log_file=LOG_FILE)
 logger = logging.getLogger("RPA.Servico")
 
 
-def processar_pendentes_bloqueio(cliente: SigaApiClient, session_manager: SaggestaoSessionManager) -> int:
+def processar_pendentes(
+    cliente: SigaApiClient, 
+    session_manager: SaggestaoSessionManager,
+    tipo_acao: Literal["BLOQUEIO", "DESBLOQUEIO"],
+    metrics: MetricsCollector
+) -> int:
     """
-    Busca e processa todos os bloqueios pendentes.
+    Busca e processa bloqueios ou desbloqueios pendentes.
+    Unifica a lógica de processamento para ambos os tipos de ação.
+
+    Args:
+        cliente: Cliente autenticado da API SIGA.
+        session_manager: Gerenciador de sessão do navegador.
+        tipo_acao: "BLOQUEIO" ou "DESBLOQUEIO".
+        metrics: Coletor de métricas para registro.
 
     Returns:
         Quantidade de itens processados.
     """
     try:
-        pendentes = cliente.buscar_pendentes_bloqueio()
+        if tipo_acao == "BLOQUEIO":
+            pendentes = cliente.buscar_pendentes_bloqueio()
+        else:
+            pendentes = cliente.buscar_pendentes_desbloqueio()
     except Exception as e:
-        logger.error(f"Erro ao buscar pendentes de bloqueio: {e}")
+        logger.error(f"Erro ao buscar pendentes de {tipo_acao}: {e}")
         return 0
 
     if not pendentes:
         return 0
 
-    logger.info(f"Encontrados {len(pendentes)} bloqueio(s) pendente(s).")
+    logger.info(f"Encontrados {len(pendentes)} pedido(s) de {tipo_acao} pendente(s).")
     processados = 0
 
     for item in pendentes:
+        start_time = time.time()
         bloqueio_id = item['id']
         siape = item['servidor']['siape']
         codigo_unidade = item['codigo_unidade']
+        sucesso = False
 
-        logger.info(f"[BLOQUEIO #{bloqueio_id}] Iniciando: SIAPE={siape}, Unidade={codigo_unidade}")
+        logger.info(f"[{tipo_acao} #{bloqueio_id}] Iniciando: SIAPE={siape}, Unidade={codigo_unidade}")
 
         try:
-            sucesso, erro = executar_bloqueio(siape, codigo_unidade, "BLOQUEIO", session_manager)
+            sucesso, erro = executar_bloqueio(siape, codigo_unidade, tipo_acao, session_manager)
 
             # Confirmar resultado na API
             try:
-                resposta = cliente.confirmar_bloqueio(bloqueio_id, sucesso, erro or "")
-                if sucesso:
-                    logger.info(f"[BLOQUEIO #{bloqueio_id}] SUCESSO - Confirmado na API.")
+                msg_erro = erro or ""
+                if tipo_acao == "BLOQUEIO":
+                    cliente.confirmar_bloqueio(bloqueio_id, sucesso, msg_erro)
                 else:
-                    logger.warning(f"[BLOQUEIO #{bloqueio_id}] FALHA - {erro} - Reportado à API.")
+                    cliente.confirmar_desbloqueio(bloqueio_id, sucesso, msg_erro)
+
+                if sucesso:
+                    logger.info(f"[{tipo_acao} #{bloqueio_id}] SUCESSO - Confirmado na API.")
+                else:
+                    logger.warning(f"[{tipo_acao} #{bloqueio_id}] FALHA - {erro} - Reportado à API.")
+            
             except Exception as e:
-                logger.error(f"[BLOQUEIO #{bloqueio_id}] Erro ao confirmar na API: {e}")
+                logger.error(f"[{tipo_acao} #{bloqueio_id}] Erro ao confirmar na API: {e}")
 
         except Exception as e:
             # Erro inesperado na automação - tenta reportar à API
             msg = f"Erro inesperado na automação: {str(e)}"
-            logger.error(f"[BLOQUEIO #{bloqueio_id}] {msg}")
+            logger.error(f"[{tipo_acao} #{bloqueio_id}] {msg}")
             try:
-                cliente.confirmar_bloqueio(bloqueio_id, False, msg[:500])
-            except Exception:
-                logger.error(f"[BLOQUEIO #{bloqueio_id}] Falha ao reportar erro à API.")
-
-        processados += 1
-
-    return processados
-
-
-def processar_pendentes_desbloqueio(cliente: SigaApiClient, session_manager: SaggestaoSessionManager) -> int:
-    """
-    Busca e processa todos os desbloqueios pendentes.
-
-    Returns:
-        Quantidade de itens processados.
-    """
-    try:
-        pendentes = cliente.buscar_pendentes_desbloqueio()
-    except Exception as e:
-        logger.error(f"Erro ao buscar pendentes de desbloqueio: {e}")
-        return 0
-
-    if not pendentes:
-        return 0
-
-    logger.info(f"Encontrados {len(pendentes)} desbloqueio(s) pendente(s).")
-    processados = 0
-
-    for item in pendentes:
-        bloqueio_id = item['id']
-        siape = item['servidor']['siape']
-        codigo_unidade = item['codigo_unidade']
-
-        logger.info(f"[DESBLOQUEIO #{bloqueio_id}] Iniciando: SIAPE={siape}, Unidade={codigo_unidade}")
-
-        try:
-            sucesso, erro = executar_bloqueio(siape, codigo_unidade, "DESBLOQUEIO", session_manager)
-
-            # Confirmar resultado na API
-            try:
-                resposta = cliente.confirmar_desbloqueio(bloqueio_id, sucesso, erro or "")
-                if sucesso:
-                    logger.info(f"[DESBLOQUEIO #{bloqueio_id}] SUCESSO - Confirmado na API.")
+                if tipo_acao == "BLOQUEIO":
+                    cliente.confirmar_bloqueio(bloqueio_id, False, msg[:500])
                 else:
-                    logger.warning(f"[DESBLOQUEIO #{bloqueio_id}] FALHA - {erro} - Reportado à API.")
-            except Exception as e:
-                logger.error(f"[DESBLOQUEIO #{bloqueio_id}] Erro ao confirmar na API: {e}")
-
-        except Exception as e:
-            msg = f"Erro inesperado na automação: {str(e)}"
-            logger.error(f"[DESBLOQUEIO #{bloqueio_id}] {msg}")
-            try:
-                cliente.confirmar_desbloqueio(bloqueio_id, False, msg[:500])
+                    cliente.confirmar_desbloqueio(bloqueio_id, False, msg[:500])
             except Exception:
-                logger.error(f"[DESBLOQUEIO #{bloqueio_id}] Falha ao reportar erro à API.")
-
+                logger.error(f"[{tipo_acao} #{bloqueio_id}] Falha ao reportar erro à API.")
+        
+        # Registrar métrica
+        duration = time.time() - start_time
+        metrics.record_operation(tipo_acao, sucesso, duration)
         processados += 1
 
     return processados
@@ -148,21 +128,27 @@ def processar_pendentes_desbloqueio(cliente: SigaApiClient, session_manager: Sag
 def main():
     """Loop principal do serviço RPA de bloqueio de perfis."""
     print_startup_banner(SIGA_API_URL, POLLING_INTERVAL, POLLING_INTERVAL_IDLE)
+    logger.info(f"Ambiente da API: {API_ENV.upper()} -> {SIGA_API_URL}")
 
     # Inicializar cliente da API
     cliente = SigaApiClient(SIGA_API_URL, SIGA_EMAIL, SIGA_PASSWORD)
 
     # Testar autenticação antes de entrar no loop
     try:
-        cliente._autenticar()
+        cliente.autenticar()
         logger.info("Autenticação inicial com a API SIGA: OK")
     except Exception as e:
         logger.critical(f"Falha na autenticação inicial: {e}")
-        logger.critical("Verifique as credenciais em config.py e se a API está rodando.")
+        logger.critical("Verifique as credenciais em .env ou config.py e se a API está rodando.")
         sys.exit(1)
 
-    # Inicializar gerenciador de sessão do browser (lazy start)
+    # Inicializar gerenciador de sessão do browser
     session_manager = SaggestaoSessionManager()
+    
+    # Inicializar métricas
+    metrics = MetricsCollector()
+    last_metrics_log = time.time()
+    METRICS_LOG_INTERVAL = 3600  # Logar métricas a cada 1 hora
 
     # Loop principal de polling
     try:
@@ -170,23 +156,28 @@ def main():
             try:
                 total_processados = 0
 
-                # 1. Processar bloqueios pendentes
-                total_processados += processar_pendentes_bloqueio(cliente, session_manager)
+                # 1. Processar bloqueios
+                total_processados += processar_pendentes(cliente, session_manager, "BLOQUEIO", metrics)
 
-                # 2. Processar desbloqueios pendentes
-                total_processados += processar_pendentes_desbloqueio(cliente, session_manager)
+                # 2. Processar desbloqueios
+                total_processados += processar_pendentes(cliente, session_manager, "DESBLOQUEIO", metrics)
 
                 # 3. Keep-alive em ciclos ociosos (apenas se sessão já foi iniciada)
-                if total_processados == 0 and session_manager._active:
+                if total_processados == 0:
                     try:
                         session_manager.ensure_ready()
                     except Exception as e:
-                        logger.warning(f"Erro durante keep-alive: {e}")
+                        logger.warning(f"Erro durante keep-alive/verificação de sessão: {e}")
 
-                # 4. Sinal de vida - mostra resumo do ciclo com data/hora
+                # 4. Sinal de vida
                 print_heartbeat(total_processados)
+                
+                # 5. Log periódico de métricas
+                if time.time() - last_metrics_log > METRICS_LOG_INTERVAL:
+                    metrics.log_summary()
+                    last_metrics_log = time.time()
 
-                # 5. Aguardar próximo ciclo
+                # 6. Aguardar próximo ciclo
                 intervalo = POLLING_INTERVAL if total_processados > 0 else POLLING_INTERVAL_IDLE
                 time.sleep(intervalo)
 
@@ -199,7 +190,8 @@ def main():
                 time.sleep(POLLING_INTERVAL)
 
     except KeyboardInterrupt:
-        pass
+        logger.info("Interrupção pelo usuário (Ctrl+C).")
+        metrics.log_summary() # Logar métricas finais no shutdown
     finally:
         print_shutdown_banner()
         session_manager.shutdown()
