@@ -199,17 +199,14 @@ def executar_configuracao(page: Page, siape: str, unidade: str, codigos_sv: list
     logger.info(f"Iniciando configuração: SIAPE={siape} | Unidade={unidade} | SVs={codigos_sv}")
 
     # Etapa 1: Busca e Alterar (com retry)
-    busca_ok = False
     for tentativa in range(1, MAX_RETRIES + 1):
         if buscar_e_alterar(page, siape):
-            busca_ok = True
             break
         if tentativa < MAX_RETRIES:
             logger.warning(f"Tentativa {tentativa}/{MAX_RETRIES} falhou. Tentando novamente...")
             page.goto(CONSULTATION_URL, wait_until="domcontentloaded", timeout=60000)
             time.sleep(2)
-
-    if not busca_ok:
+    else:
         logger.error("Não foi possível encontrar/alterar o servidor.")
         return False
 
