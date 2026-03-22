@@ -48,3 +48,6 @@ playwright-logs/
 # Project-specific
 metrics.log
 session_*.json
+
+# Git Worktrees
+.worktrees/
