@@ -259,38 +259,45 @@ def abrir_modal_competencias_unidade(page: Page, unidade: str) -> bool:
                 if celula_codigo.count() == 0:
                     continue
                 texto_celula = celula_codigo.first.text_content(timeout=2000) or ""
-                match = re.search(r'(\d+)', texto_celula)
-                if not match:
+                if str(unidade) not in texto_celula:
                     continue
 
-                if match.group(1) == str(unidade):
-                    logger.info(f"Unidade {unidade} encontrada na linha {i+1}, página {page_num}.")
+                logger.info(f"Unidade {unidade} encontrada na linha {i+1}, página {page_num}.")
 
-                    # Marca checkbox GET
-                    cb_get = linha.locator('[id$="selecionarDeselecionarGet"]')
-                    if cb_get.count() > 0 and cb_get.is_visible():
-                        if not cb_get.is_checked():
-                            cb_get.check()
-                            logger.info("Checkbox GET marcado.")
-                        else:
-                            logger.info("Checkbox GET já marcado.")
+                # Marca checkbox GET
+                cb_get = linha.locator('[id$="selecionarDeselecionarGet"]')
+                if cb_get.count() > 0 and cb_get.is_visible():
+                    if not cb_get.is_checked():
+                        cb_get.check()
+                        logger.info("Checkbox GET marcado.")
+                    else:
+                        logger.info("Checkbox GET já marcado.")
 
-                    # Clica no botão lápis (abre modal de competências)
-                    btn_modal = linha.get_by_label("Competências do profissional por unidade").or_(
-                        linha.locator("a.ico-pencil")
-                    )
+                # Clica no botão lápis (abre modal de competências)
+                btn_modal = linha.get_by_label("Competências do profissional por unidade").or_(
+                    linha.locator("a:has(span.ico-pencil)")
+                )
 
-                    for tentativa in range(1, 4):
-                        if btn_modal.count() > 0 and btn_modal.first.is_visible():
-                            btn_modal.first.click()
-                            page.wait_for_timeout(2000)
-                            logger.info("Modal de competências aberto.")
+                for tentativa in range(1, 4):
+                    if btn_modal.count() > 0 and btn_modal.first.is_visible():
+                        btn_modal.first.click()
+                        try:
+                            page.wait_for_selector(
+                                '[id="cmpModalCompetenciaServicoLocal\\:formPesquisaCompetencias\\:botaoConfirmarModalCompetenciaServicoLocal"]',
+                                state="visible",
+                                timeout=10000
+                            )
+                            logger.info("Modal de competências aberto e confirmado.")
                             return True
-                        logger.debug(f"Botão modal tentativa {tentativa}/3...")
-                        page.wait_for_timeout(1000)
+                        except PlaywrightError:
+                            logger.warning(f"Botão modal tentativa {tentativa}/3 — modal não carregou. Tentando novamente...")
+                            page.wait_for_timeout(1000)
+                            continue
+                    logger.debug(f"Botão modal tentativa {tentativa}/3...")
+                    page.wait_for_timeout(1000)
 
-                    logger.error("Botão do modal não foi clicado após 3 tentativas.")
-                    return False
+                logger.error("Botão do modal não foi clicado após 3 tentativas.")
+                return False
 
             except Exception as e:
                 logger.warning(f"Erro ao processar linha {i+1}: {e}")
