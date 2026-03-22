@@ -20,14 +20,14 @@ from playwright.sync_api import sync_playwright, Page, Error as PlaywrightError
 
 from auth import SaggestaoAuth
 from colored_logger import setup_colored_logging
+from config import (
+    SAGGESTAO_CONSULTATION_URL as CONSULTATION_URL,
+    BROWSER_HEADLESS,
+    PLAYWRIGHT_DEFAULT_TIMEOUT as DEFAULT_TIMEOUT,
+    MAX_RETRIES,
+)
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
-# --- Configuração ---
-CONSULTATION_URL = "http://psagapr01/saggestaoagu/pages/cadastro/profissional/consultar.xhtml"
-BROWSER_HEADLESS = False
-DEFAULT_TIMEOUT = 60000
-MAX_RETRIES = 3
 
 # Valores padrão fixos da configuração de perfil
 DEFAULTS = {
