@@ -471,6 +471,57 @@ def buscar_e_alterar(page: Page, siape: str) -> bool:
     return False
 
 
+def confirmar_alteracao_final(page: Page) -> bool:
+    """
+    Clica no botão Confirmar principal.
+    Lida com mensagem de divergência (reconfirma automaticamente).
+    Retorna True se a mensagem de sucesso for detectada.
+    """
+    logger.info("Iniciando confirmação final...")
+    page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+    time.sleep(1)
+
+    def _clicar_confirmar():
+        btn = page.locator("id=form:botaoConfirmar")
+        if btn.count() > 0 and btn.is_visible():
+            btn.click()
+        else:
+            # Fallback por role
+            btn_role = page.get_by_role("button", name=" Confirmar")
+            if btn_role.count() > 0 and btn_role.first.is_enabled():
+                btn_role.first.click()
+            else:
+                page.evaluate("document.getElementById('form:botaoConfirmar').click()")
+
+    _clicar_confirmar()
+
+    for tentativa in range(1, 4):
+        logger.info(f"Verificando resultado (tentativa {tentativa}/3)...")
+        page.wait_for_timeout(3000)
+
+        sucesso = page.locator("#mMensagens").get_by_text("Alteração realizada(o) com")
+        if sucesso.count() > 0 and sucesso.first.is_visible(timeout=3000):
+            logger.info("SUCESSO: Alteração realizada com sucesso!")
+            return True
+
+        # Alternativa de mensagem de sucesso
+        sucesso_alt = page.locator("text=Alteração realizada")
+        if sucesso_alt.count() > 0 and sucesso_alt.first.is_visible(timeout=2000):
+            logger.info("SUCESSO: Alteração realizada!")
+            return True
+
+        # Divergência: reconfirmar
+        divergencia = page.locator("text=diverge dos dados")
+        if divergencia.count() > 0 and divergencia.first.is_visible(timeout=2000):
+            logger.warning("Aviso de divergência detectado. Reconfirmando...")
+            page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+            _clicar_confirmar()
+            continue
+
+    logger.error("Mensagem de sucesso não detectada após confirmação.")
+    return False
+
+
 def executar_configuracao(page: Page, siape: str, unidade: str, codigos_sv: list[str]) -> bool:
     """
     Orquestra todas as etapas de configuração de perfil.
@@ -511,8 +562,13 @@ def executar_configuracao(page: Page, siape: str, unidade: str, codigos_sv: list
         logger.error("Falha ao configurar modal de competências.")
         return False
 
-    # TODO: próximas etapas
-    return False
+    # Etapa 5: Confirmação final
+    if not confirmar_alteracao_final(page):
+        logger.error("Confirmação final falhou.")
+        return False
+
+    logger.info(f"CONFIGURAÇÃO COMPLETA | SIAPE={siape} | Unidade={unidade}")
+    return True
 
 
 def main():
