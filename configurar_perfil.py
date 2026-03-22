@@ -211,6 +211,102 @@ def configurar_servicos_tabela_principal(
             continue
 
 
+def abrir_modal_competencias_unidade(page: Page, unidade: str) -> bool:
+    """
+    Na tabela de unidades, encontra a unidade alvo:
+      1. Marca o checkbox GET
+      2. Clica no botão lápis para abrir o modal de competências por unidade
+    Retorna True se o modal abrir com sucesso.
+    """
+    logger.info(f"Buscando unidade {unidade} na tabela de unidades...")
+
+    # Tenta aumentar itens por página para 30
+    try:
+        dropdown_pag = page.locator('[id="form\\:tabelaUnidades\\:j_id7"]')
+        if dropdown_pag.count() > 0 and dropdown_pag.is_visible(timeout=2000):
+            dropdown_pag.select_option("30")
+            time.sleep(2)
+    except Exception:
+        pass
+
+    # Garante início na página 1
+    try:
+        btn_first = page.locator('[id="form\\:tabelaUnidades_paginator_bottom"] a.ui-paginator-first:not(.ui-state-disabled)')
+        if btn_first.count() > 0 and btn_first.is_visible():
+            btn_first.first.click()
+            page.wait_for_timeout(3000)
+    except Exception:
+        pass
+
+    page_num = 1
+    while True:
+        logger.info(f"Analisando página {page_num} da tabela de unidades...")
+
+        # Espera linhas carregarem
+        try:
+            page.locator("#form\\:tabelaUnidades_data tr").first.wait_for(state="visible", timeout=10000)
+        except PlaywrightError:
+            logger.error("Tabela de unidades vazia ou não carregou.")
+            return False
+
+        linhas = page.locator("#form\\:tabelaUnidades_data tr")
+        count = linhas.count()
+
+        for i in range(count):
+            linha = linhas.nth(i)
+            try:
+                celula_codigo = linha.locator("td:nth-child(2)")
+                if celula_codigo.count() == 0:
+                    continue
+                texto_celula = celula_codigo.first.text_content(timeout=2000) or ""
+                match = re.search(r'(\d+)', texto_celula)
+                if not match:
+                    continue
+
+                if match.group(1) == str(unidade):
+                    logger.info(f"Unidade {unidade} encontrada na linha {i+1}, página {page_num}.")
+
+                    # Marca checkbox GET
+                    cb_get = linha.locator('[id$="selecionarDeselecionarGet"]')
+                    if cb_get.count() > 0 and cb_get.is_visible():
+                        if not cb_get.is_checked():
+                            cb_get.check()
+                            logger.info("Checkbox GET marcado.")
+                        else:
+                            logger.info("Checkbox GET já marcado.")
+
+                    # Clica no botão lápis (abre modal de competências)
+                    btn_modal = linha.get_by_label("Competências do profissional por unidade").or_(
+                        linha.locator("a.ico-pencil")
+                    )
+
+                    for tentativa in range(1, 4):
+                        if btn_modal.count() > 0 and btn_modal.first.is_visible():
+                            btn_modal.first.click()
+                            page.wait_for_timeout(2000)
+                            logger.info("Modal de competências aberto.")
+                            return True
+                        logger.debug(f"Botão modal tentativa {tentativa}/3...")
+                        page.wait_for_timeout(1000)
+
+                    logger.error("Botão do modal não foi clicado após 3 tentativas.")
+                    return False
+
+            except Exception as e:
+                logger.warning(f"Erro ao processar linha {i+1}: {e}")
+                continue
+
+        # Próxima página
+        btn_next = page.locator('[id="form\\:tabelaUnidades_paginator_bottom"] a.ui-paginator-next:not(.ui-state-disabled)')
+        if btn_next.count() > 0 and btn_next.is_visible():
+            btn_next.first.click()
+            page.wait_for_timeout(3000)
+            page_num += 1
+        else:
+            logger.error(f"Unidade {unidade} não encontrada em nenhuma página da tabela.")
+            return False
+
+
 def buscar_e_alterar(page: Page, siape: str) -> bool:
     """
     Busca o servidor pelo SIAPE e clica em Alterar.
@@ -305,6 +401,11 @@ def executar_configuracao(page: Page, siape: str, unidade: str, codigos_sv: list
         atrib_resp=DEFAULTS["atrib_resp"],
         trasf=DEFAULTS["trasf"]
     )
+
+    # Etapa 3: Abrir modal de competências da unidade
+    if not abrir_modal_competencias_unidade(page, unidade):
+        logger.error("Não foi possível abrir o modal de competências.")
+        return False
 
     # TODO: próximas etapas
     return False
