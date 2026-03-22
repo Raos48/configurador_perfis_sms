@@ -87,6 +87,67 @@ def coletar_dados_prompt() -> tuple[str, str, list[str]]:
     return siape, unidade, codigos_sv
 
 
-if __name__ == "__main__":
+def iniciar_sessao(playwright_instance):
+    """
+    Cria browser autenticado e navega para a página de consulta.
+    Retorna (browser, context, page) prontos para uso.
+    Lida com seleção de domínio caso apareça após o login.
+    """
+    logger.info("Iniciando browser e autenticando...")
+
+    browser = playwright_instance.chromium.launch(headless=BROWSER_HEADLESS)
+    context = SaggestaoAuth.configurar_contexto(browser)
+    page = context.new_page()
+    page.set_default_timeout(DEFAULT_TIMEOUT)
+
+    logger.info("Navegando para página de consulta...")
+    page.goto(CONSULTATION_URL, wait_until="domcontentloaded", timeout=120000)
+
+    # Seleção de domínio (aparece em alguns ambientes)
+    time.sleep(2)
+    domain_selector = page.locator("select#domains")
+    if domain_selector.count() > 0:
+        logger.info("Página de seleção de domínio detectada. Selecionando UO:01.001.PRES...")
+        domain_selector.select_option("UO:01.001.PRES")
+        time.sleep(1)
+        page.get_by_role("button", name="Enviar").click()
+        page.wait_for_load_state("domcontentloaded", timeout=15000)
+        time.sleep(2)
+
+    # Aguarda campo SIAPE para confirmar login
+    logger.info("Aguardando confirmação de login...")
+    page.wait_for_selector('input[name="form\\:idMskSiape"]', state="visible", timeout=120000)
+    logger.info("Login confirmado.")
+
+    return browser, context, page
+
+
+def executar_configuracao(page: Page, siape: str, unidade: str, codigos_sv: list[str]) -> bool:
+    """
+    Orquestra todas as etapas de configuração de perfil.
+    Retorna True em sucesso, False em falha.
+    """
+    logger.info(f"Iniciando configuração: SIAPE={siape} | Unidade={unidade} | SVs={codigos_sv}")
+    # TODO: implementado nas tasks seguintes
+    return False
+
+
+def main():
     siape, unidade, codigos_sv = coletar_dados_prompt()
-    print("Estrutura base OK — implementação em andamento.")
+
+    with sync_playwright() as pw:
+        browser, context, page = iniciar_sessao(pw)
+        try:
+            sucesso = executar_configuracao(page, siape, unidade, codigos_sv)
+            if sucesso:
+                logger.info("CONFIGURAÇÃO CONCLUÍDA COM SUCESSO.")
+            else:
+                logger.error("CONFIGURAÇÃO FALHOU.")
+                sys.exit(1)
+        finally:
+            context.close()
+            browser.close()
+
+
+if __name__ == "__main__":
+    main()
