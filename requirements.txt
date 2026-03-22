@@ -1,4 +1,4 @@
-# Dependências do Serviço RPA de Bloqueio de Perfis
+# Dependências do Configurador de Perfil SAGGESTAO
 
 # Automação de navegador
 playwright>=1.40.0
@@ -10,12 +10,8 @@ urllib3>=2.0.0
 # Cores no terminal (compatível com Windows)
 colorama>=0.4.6
 
-# Gerenciamento de Configuração (Segurança)
+# Gerenciamento de Configuração
 python-dotenv>=1.0.0
 
 # Resiliência e Retry Logic
 tenacity>=8.2.0
-
-# Testes (Opcional, mas recomendado)
-pytest>=7.4.0
-pytest-mock>=3.11.1
