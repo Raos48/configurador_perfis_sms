@@ -114,10 +114,15 @@ def iniciar_sessao(playwright_instance):
         page.wait_for_load_state("domcontentloaded", timeout=15000)
         time.sleep(2)
 
-    # Aguarda campo SIAPE para confirmar login
-    logger.info("Aguardando confirmação de login...")
+    # Após login/domínio, navega para a página de consulta onde está o campo SIAPE
+    logger.info("Navegando para a página de consulta do profissional...")
+    page.goto(CONSULTATION_URL, wait_until="domcontentloaded", timeout=120000)
+    time.sleep(2)
+
+    # Aguarda campo SIAPE para confirmar que a página carregou
+    logger.info("Aguardando campo SIAPE...")
     page.wait_for_selector('input[name="form\\:idMskSiape"]', state="visible", timeout=120000)
-    logger.info("Login confirmado.")
+    logger.info("Página de consulta pronta.")
 
     return browser, context, page
 
