@@ -314,6 +314,94 @@ def abrir_modal_competencias_unidade(page: Page, unidade: str) -> bool:
             return False
 
 
+def configurar_modal_competencias(
+    page: Page, codigos_sv: list[str],
+    ativar_mi_exer: str = "Sim",
+    bloquear_alteracoes: str = "Não"
+) -> bool:
+    """
+    Dentro do modal de competências por unidade:
+      1. Configura BloquerAlteracoes (radio Sim/Não)
+      2. Para cada CódigoSV: digita no campo modal, ajusta checkbox AtivarMiExer
+      3. Clica Confirmar do modal
+    Retorna True se o modal for confirmado com sucesso.
+    """
+    modal_prefix = "cmpModalCompetenciaServicoLocal:formPesquisaCompetencias"
+
+    # 1. Configurar BloquerAlteracoes
+    logger.info(f"Configurando BloquerAlteracoes = {bloquear_alteracoes}...")
+    try:
+        if bloquear_alteracoes == "Sim":
+            radio = page.locator("input[id*='bloquearAlteracaoExercicio:1']")
+        else:
+            radio = page.locator("input[id*='bloquearAlteracaoExercicio:0']")
+
+        if radio.count() > 0:
+            if not radio.first.is_checked():
+                radio.first.click()
+                time.sleep(1)
+            logger.info(f"BloquerAlteracoes configurado para {bloquear_alteracoes}.")
+        else:
+            logger.warning("Radio BloquerAlteracoes não encontrado no modal.")
+    except Exception as e:
+        logger.warning(f"Erro ao configurar BloquerAlteracoes: {e}")
+
+    # 2. Processar cada CódigoSV no modal
+    input_modal_selector = (
+        f'[id="{modal_prefix}\\:tabelaServicoModal\\:codigoModalServico"]'
+    )
+    msg_sem_registro = "xpath=//div[@id='cmpModalCompetenciaServicoLocal:formPesquisaCompetencias:tabelaServicoModal']//td[contains(text(),'Nenhum registro encontrado')]"
+
+    for cod in codigos_sv:
+        logger.info(f"Configurando código SV {cod} no modal...")
+        try:
+            campo_modal = page.locator(input_modal_selector)
+            if campo_modal.count() == 0:
+                logger.warning(f"Campo do modal não encontrado para código {cod}. Pulando.")
+                continue
+
+            campo_modal.first.clear()
+            campo_modal.first.type(str(cod), delay=50)
+            page.wait_for_timeout(2000)
+
+            # Usa seletor direto que inclui o container do modal para evitar
+            # match em outras tabelas do DOM (baseado no ID hardcoded do script de referência)
+            cb_direto = page.locator('[id*="tabelaServicoModal:0:selecionarDeselecionarCompetencia"]')
+            if cb_direto.count() > 0 and cb_direto.first.is_visible(timeout=3000):
+                desired = (ativar_mi_exer == "Sim")
+                _set_checkbox(page, cb_direto, desired, f"AtivarMiExer[{cod}]")
+                time.sleep(1)
+            else:
+                # Checkbox não apareceu — verifica se é "nenhum registro" ou erro inesperado
+                sem_reg = page.locator(msg_sem_registro)
+                if sem_reg.count() > 0 and sem_reg.first.is_visible(timeout=2000):
+                    logger.warning(f"Código SV {cod} não encontrado no modal. Pulando.")
+                else:
+                    logger.warning(f"Estado inesperado no modal para código {cod}. Pulando.")
+
+        except Exception as e:
+            logger.warning(f"Erro ao processar código {cod} no modal: {e}")
+            continue
+
+    # 3. Confirmar modal
+    logger.info("Confirmando modal de competências...")
+    btn_confirmar_modal = page.locator(
+        f'[id="{modal_prefix}\\:botaoConfirmarModalCompetenciaServicoLocal"]'
+    )
+    try:
+        if btn_confirmar_modal.count() > 0 and btn_confirmar_modal.first.is_visible():
+            btn_confirmar_modal.first.click()
+            time.sleep(2)
+            logger.info("Modal confirmado.")
+            return True
+        else:
+            logger.error("Botão Confirmar do modal não encontrado.")
+            return False
+    except Exception as e:
+        logger.error(f"Erro ao confirmar modal: {e}")
+        return False
+
+
 def buscar_e_alterar(page: Page, siape: str) -> bool:
     """
     Busca o servidor pelo SIAPE e clica em Alterar.
@@ -412,6 +500,15 @@ def executar_configuracao(page: Page, siape: str, unidade: str, codigos_sv: list
     # Etapa 3: Abrir modal de competências da unidade
     if not abrir_modal_competencias_unidade(page, unidade):
         logger.error("Não foi possível abrir o modal de competências.")
+        return False
+
+    # Etapa 4: Configurar modal de competências
+    if not configurar_modal_competencias(
+        page, codigos_sv,
+        ativar_mi_exer=DEFAULTS["ativar_mi_exer"],
+        bloquear_alteracoes=DEFAULTS["bloquear_alteracoes"]
+    ):
+        logger.error("Falha ao configurar modal de competências.")
         return False
 
     # TODO: próximas etapas
