@@ -258,7 +258,7 @@ def abrir_modal_competencias_unidade(page: Page, unidade: str) -> bool:
                 if celula_codigo.count() == 0:
                     continue
                 texto_celula = celula_codigo.first.text_content(timeout=2000) or ""
-                if str(unidade) not in texto_celula:
+                if texto_celula.strip() != str(unidade):
                     continue
 
                 logger.info(f"Unidade {unidade} encontrada na linha {i+1}, página {page_num}.")
@@ -516,6 +516,17 @@ def confirmar_alteracao_final(page: Page) -> bool:
             page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
             _clicar_confirmar()
             continue
+
+    # Final check: last divergence reconfirmation may have succeeded
+    page.wait_for_timeout(3000)
+    sucesso = page.locator("#mMensagens").get_by_text("Alteração realizada(o) com")
+    if sucesso.count() > 0 and sucesso.first.is_visible(timeout=3000):
+        logger.info("SUCESSO: Alteração realizada com sucesso!")
+        return True
+    sucesso_alt = page.locator("text=Alteração realizada")
+    if sucesso_alt.count() > 0 and sucesso_alt.first.is_visible(timeout=2000):
+        logger.info("SUCESSO: Alteração realizada!")
+        return True
 
     logger.error("Mensagem de sucesso não detectada após confirmação.")
     return False
