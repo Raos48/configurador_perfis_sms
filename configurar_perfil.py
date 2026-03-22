@@ -122,13 +122,98 @@ def iniciar_sessao(playwright_instance):
     return browser, context, page
 
 
+def buscar_e_alterar(page: Page, siape: str) -> bool:
+    """
+    Busca o servidor pelo SIAPE e clica em Alterar.
+    Retorna True se o formulário de edição carregar com sucesso.
+    """
+    logger.info(f"Buscando servidor SIAPE={siape}...")
+
+    # Garante página de consulta
+    if "consultar.xhtml" not in page.url:
+        page.goto(CONSULTATION_URL, wait_until="domcontentloaded", timeout=120000)
+        page.wait_for_selector('input[name="form\\:idMskSiape"]', timeout=30000)
+
+    campo_siape = page.locator('input[name="form\\:idMskSiape"]')
+    campo_siape.clear()
+    campo_siape.fill(siape)
+    page.locator('role=button[name="Pesquisar"]').first.click()
+    time.sleep(3)
+
+    # Verifica se não encontrou
+    alerta = page.locator("div.ui-messages-warn-summary")
+    if alerta.count() > 0 and "Não foram encontrados registros" in (alerta.first.text_content() or ""):
+        logger.error(f"SIAPE {siape} não encontrado no sistema.")
+        return False
+
+    # Verifica profissional inativo
+    inativo = page.get_by_role("gridcell", name="Inativo", exact=True)
+    if inativo.count() > 0 and inativo.first.is_visible():
+        logger.error(f"Profissional SIAPE {siape} está inativo.")
+        return False
+
+    # Clicar em Alterar com múltiplos seletores
+    seletores_alterar = [
+        '[id="form:tabelaProfissionais:0:idAlterarCadastroProfissional"]',
+        '[id$="idAlterarCadastroProfissional"]',
+        'a:has(span.ico-pencil)',
+    ]
+
+    for sel in seletores_alterar:
+        btn = page.locator(sel)
+        if btn.count() > 0 and btn.first.is_visible():
+            btn.first.click()
+            page.wait_for_load_state("domcontentloaded", timeout=15000)
+            time.sleep(2)
+            logger.info("Formulário de edição carregado.")
+            return True
+
+    # Fallback JS
+    clicked = page.evaluate("""
+        (() => {
+            const links = document.querySelectorAll('a[id*="idAlterarCadastroProfissional"]');
+            if (links.length > 0) { links[0].click(); return true; }
+            const pencils = document.querySelectorAll('.ico-pencil');
+            for (const el of pencils) {
+                const anchor = el.closest('a');
+                if (anchor) { anchor.click(); return true; }
+            }
+            return false;
+        })()
+    """)
+    if clicked:
+        page.wait_for_load_state("domcontentloaded", timeout=15000)
+        time.sleep(2)
+        logger.info("Formulário de edição carregado (via JS).")
+        return True
+
+    logger.error("Botão Alterar não encontrado.")
+    return False
+
+
 def executar_configuracao(page: Page, siape: str, unidade: str, codigos_sv: list[str]) -> bool:
     """
     Orquestra todas as etapas de configuração de perfil.
     Retorna True em sucesso, False em falha.
     """
     logger.info(f"Iniciando configuração: SIAPE={siape} | Unidade={unidade} | SVs={codigos_sv}")
-    # TODO: implementado nas tasks seguintes
+
+    # Etapa 1: Busca e Alterar (com retry)
+    busca_ok = False
+    for tentativa in range(1, MAX_RETRIES + 1):
+        if buscar_e_alterar(page, siape):
+            busca_ok = True
+            break
+        if tentativa < MAX_RETRIES:
+            logger.warning(f"Tentativa {tentativa}/{MAX_RETRIES} falhou. Tentando novamente...")
+            page.goto(CONSULTATION_URL, wait_until="domcontentloaded", timeout=60000)
+            time.sleep(2)
+
+    if not busca_ok:
+        logger.error("Não foi possível encontrar/alterar o servidor.")
+        return False
+
+    # TODO: próximas etapas
     return False
 
 
