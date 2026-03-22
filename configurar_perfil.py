@@ -12,6 +12,7 @@ Uso:
 
 import sys
 import time
+import re
 import logging
 
 import urllib3
@@ -216,49 +217,58 @@ def abrir_modal_competencias_unidade(page: Page, unidade: str) -> bool:
       1. Marca o checkbox GET
       2. Clica no botão lápis para abrir o modal de competências por unidade
     Retorna True se o modal abrir com sucesso.
+    Estratégia de navegação baseada em saggestao_automation_referencia.py.
     """
+    paginator_selector = '[id="form\\:tabelaUnidades_paginator_bottom"]'
     logger.info(f"Buscando unidade {unidade} na tabela de unidades...")
-
-    # Tenta aumentar itens por página para 30
-    try:
-        dropdown_pag = page.locator('[id="form\\:tabelaUnidades\\:j_id7"]')
-        if dropdown_pag.count() > 0 and dropdown_pag.is_visible(timeout=2000):
-            dropdown_pag.select_option("30")
-            time.sleep(2)
-    except Exception:
-        pass
 
     # Garante início na página 1
     try:
-        btn_first = page.locator('[id="form\\:tabelaUnidades_paginator_bottom"] a.ui-paginator-first:not(.ui-state-disabled)')
+        btn_first = page.locator(f"{paginator_selector} a.ui-paginator-first:not(.ui-state-disabled)")
         if btn_first.count() > 0 and btn_first.is_visible():
             btn_first.first.click()
+            logger.info("Tabela de unidades resetada para a página 1.")
             page.wait_for_timeout(3000)
-    except Exception:
-        pass
+        else:
+            logger.info("Tabela já está na página 1 ou não há paginação.")
+    except Exception as e:
+        logger.warning(f"Não foi possível clicar em 'Primeira Página': {e}")
 
     page_num = 1
     while True:
-        logger.info(f"Analisando página {page_num} da tabela de unidades...")
+        logger.info(f"Procurando unidade '{unidade}' na página {page_num}...")
 
-        # Espera linhas carregarem
+        # Espera inteligente: aguarda a primeira linha estar visível
         try:
             page.locator("#form\\:tabelaUnidades_data tr").first.wait_for(state="visible", timeout=10000)
         except PlaywrightError:
-            logger.error("Tabela de unidades vazia ou não carregou.")
+            logger.error(f"Nenhuma linha encontrada na tabela na página {page_num}.")
             return False
 
         linhas = page.locator("#form\\:tabelaUnidades_data tr")
-        count = linhas.count()
+        row_count = linhas.count()
 
-        for i in range(count):
+        for i in range(row_count):
             linha = linhas.nth(i)
+            logger.debug(f"Analisando linha {i+1}/{row_count}...")
             try:
                 celula_codigo = linha.locator("td:nth-child(2)")
                 if celula_codigo.count() == 0:
                     continue
+
                 texto_celula = celula_codigo.first.text_content(timeout=2000) or ""
-                if texto_celula.strip() != str(unidade):
+                logger.debug(f"Texto bruto da célula: '{texto_celula.strip()}'")
+
+                # Extrai código numérico via regex (igual ao script de referência)
+                match = re.search(r'(\d+)', texto_celula)
+                if not match:
+                    logger.debug("Regex não encontrou código numérico na célula.")
+                    continue
+
+                codigo_extraido = match.group(1)
+                logger.debug(f"Código extraído: '{codigo_extraido}' | Procurado: '{unidade}'")
+
+                if codigo_extraido != str(unidade):
                     continue
 
                 logger.info(f"Unidade {unidade} encontrada na linha {i+1}, página {page_num}.")
@@ -266,50 +276,54 @@ def abrir_modal_competencias_unidade(page: Page, unidade: str) -> bool:
                 # Marca checkbox GET
                 cb_get = linha.locator('[id$="selecionarDeselecionarGet"]')
                 if cb_get.count() > 0 and cb_get.is_visible():
-                    if not cb_get.is_checked():
-                        cb_get.check()
-                        logger.info("Checkbox GET marcado.")
-                    else:
-                        logger.info("Checkbox GET já marcado.")
+                    cb_get.check()
+                    logger.info("Checkbox GET marcado.")
+                else:
+                    logger.warning("Checkbox GET não encontrado ou não visível.")
 
                 # Clica no botão lápis (abre modal de competências)
                 btn_modal = linha.get_by_label("Competências do profissional por unidade").or_(
-                    linha.locator("a:has(span.ico-pencil)")
+                    linha.locator("a.ico-pencil")
                 )
 
+                button_clicked = False
                 for tentativa in range(1, 4):
+                    logger.debug(f"Tentativa {tentativa}/3 para clicar no botão lápis...")
                     if btn_modal.count() > 0 and btn_modal.first.is_visible():
-                        btn_modal.first.click()
                         try:
-                            page.wait_for_selector(
-                                '[id="cmpModalCompetenciaServicoLocal\\:formPesquisaCompetencias\\:botaoConfirmarModalCompetenciaServicoLocal"]',
-                                state="visible",
-                                timeout=10000
-                            )
-                            logger.info("Modal de competências aberto e confirmado.")
-                            return True
-                        except PlaywrightError:
-                            logger.warning(f"Botão modal tentativa {tentativa}/3 — modal não carregou. Tentando novamente...")
-                            page.wait_for_timeout(1000)
-                            continue
-                    logger.debug(f"Botão modal tentativa {tentativa}/3...")
-                    page.wait_for_timeout(1000)
+                            btn_modal.first.click()
+                            logger.info("Botão lápis clicado com sucesso.")
+                            button_clicked = True
+                            break
+                        except Exception as e_click:
+                            logger.debug(f"Erro ao clicar na tentativa {tentativa}: {e_click}")
+                    if tentativa < 3:
+                        page.wait_for_timeout(1000)
 
-                logger.error("Botão do modal não foi clicado após 3 tentativas.")
-                return False
+                if button_clicked:
+                    page.wait_for_timeout(1000)
+                    return True
+                else:
+                    logger.error(f"Botão lápis não foi clicado após 3 tentativas.")
+                    return False
 
             except Exception as e:
                 logger.warning(f"Erro ao processar linha {i+1}: {e}")
                 continue
 
         # Próxima página
-        btn_next = page.locator('[id="form\\:tabelaUnidades_paginator_bottom"] a.ui-paginator-next:not(.ui-state-disabled)')
-        if btn_next.count() > 0 and btn_next.is_visible():
-            btn_next.first.click()
-            page.wait_for_timeout(3000)
-            page_num += 1
-        else:
-            logger.error(f"Unidade {unidade} não encontrada em nenhuma página da tabela.")
+        try:
+            btn_next = page.locator(f"{paginator_selector} a.ui-paginator-next:not(.ui-state-disabled)")
+            if btn_next.count() > 0:
+                logger.info(f"Unidade não encontrada na página {page_num}. Indo para próxima página...")
+                btn_next.first.click()
+                page.wait_for_timeout(3000)
+                page_num += 1
+            else:
+                logger.error(f"Unidade '{unidade}' não encontrada em nenhuma página da tabela.")
+                return False
+        except Exception as e:
+            logger.error(f"Erro ao navegar para próxima página: {e}")
             return False
 
 
