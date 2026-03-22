@@ -5,6 +5,7 @@ e controle do loop de polling.
 """
 
 import os
+import warnings
 from dotenv import load_dotenv
 
 # Carrega variáveis de ambiente do arquivo .env (se existir)
@@ -30,10 +31,12 @@ SIGA_API_URL = _SIGA_API_URL_CLOUD if _API_ENV == "cloud" else _SIGA_API_URL_LOC
 SIGA_EMAIL = os.environ.get("SIGA_EMAIL")
 SIGA_PASSWORD = os.environ.get("SIGA_PASSWORD")
 
+# Aviso em vez de erro — scripts standalone não precisam das credenciais de API
 if not SIGA_EMAIL or not SIGA_PASSWORD:
-    raise ValueError(
-        "ERRO CRÍTICO: Variáveis de ambiente SIGA_EMAIL e SIGA_PASSWORD são obrigatórias. "
-        "Verifique se o arquivo .env existe e está configurado corretamente."
+    warnings.warn(
+        "SIGA_EMAIL/SIGA_PASSWORD não configurados. "
+        "Funcionalidades de API SIGA não estarão disponíveis.",
+        stacklevel=1,
     )
 
 # URL direta para a página de consulta do SAGGESTAO
