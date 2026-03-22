@@ -12,7 +12,6 @@ Uso:
 
 import sys
 import time
-import re
 import logging
 
 import urllib3
