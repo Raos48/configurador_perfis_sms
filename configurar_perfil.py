@@ -122,6 +122,95 @@ def iniciar_sessao(playwright_instance):
     return browser, context, page
 
 
+def _set_checkbox(page: Page, checkbox_locator, desired_state: bool, label: str = "checkbox") -> bool:
+    """Define o estado de um checkbox. Retorna True se bem-sucedido."""
+    try:
+        for _ in range(3):
+            if checkbox_locator.count() > 0 and checkbox_locator.first.is_visible():
+                current = checkbox_locator.first.is_checked()
+                if current == desired_state:
+                    return True
+                checkbox_locator.first.click()
+                page.wait_for_timeout(500)
+                if checkbox_locator.first.is_checked() == desired_state:
+                    return True
+            time.sleep(1)
+        logger.warning(f"Não foi possível definir {label} para {desired_state}")
+        return False
+    except Exception as e:
+        logger.warning(f"Erro ao ajustar {label}: {e}")
+        return False
+
+
+def configurar_servicos_tabela_principal(
+    page: Page, codigos_sv: list[str],
+    atrib_resp: str = "Não", trasf: str = "Não"
+) -> None:
+    """
+    Para cada código SV na tabela principal:
+      - Digita o código no campo de filtro
+      - Marca Competência (sempre True)
+      - Define AtribuiçãoResp e Transferência conforme parâmetros
+    Erros por código são logados mas não interrompem os demais.
+    """
+    if not codigos_sv:
+        logger.info("Nenhum código SV para configurar na tabela principal.")
+        return
+
+    input_selector = '[id="form\\:tabelaServico\\:codigoServico"]'
+
+    for cod in codigos_sv:
+        logger.info(f"Configurando código SV {cod} na tabela principal...")
+        try:
+            # Encontra e limpa o campo
+            campo = page.locator(input_selector)
+            if campo.count() == 0:
+                logger.warning(f"Campo de código SV não encontrado para {cod}. Pulando.")
+                continue
+
+            campo.first.focus()
+            campo.first.click(click_count=3)
+            campo.first.press("Backspace")
+            campo.first.clear()
+            campo.first.type(str(cod), delay=100)
+            page.wait_for_timeout(2000)
+
+            # Aguarda resultado: célula com o código OU "Nenhum registro"
+            celula_sv = page.get_by_role("gridcell", name=str(cod), exact=True).filter(visible=True)
+            msg_vazio = page.get_by_text("Nenhum registro encontrado.")
+
+            try:
+                celula_sv.or_(msg_vazio).first.wait_for(state="visible", timeout=10000)
+            except Exception:
+                logger.warning(f"Timeout aguardando resultado do filtro para {cod}. Pulando.")
+                continue
+
+            if not celula_sv.is_visible():
+                logger.warning(f"Código SV {cod} não encontrado na tabela principal. Pulando.")
+                continue
+
+            # Encontra a linha do código
+            linha = celula_sv.locator("xpath=ancestor::tr")
+
+            # Checkbox Competência (sempre marcar)
+            cb_comp = linha.locator("input[name*='selecionarDeselecionarCompetencia']")
+            _set_checkbox(page, cb_comp, True, f"Competencia[{cod}]")
+
+            # Checkbox AtribuiçãoResp
+            cb_atrib = linha.locator("input[name*='selecionarDeselecionarAtribuicao']")
+            _set_checkbox(page, cb_atrib, atrib_resp == "Sim", f"AtribResp[{cod}]")
+
+            # Checkbox Transferência
+            cb_trasf = linha.locator("input[name*='selecionarDeselecionarTransferencia']")
+            _set_checkbox(page, cb_trasf, trasf == "Sim", f"Trasf[{cod}]")
+
+            logger.info(f"Código SV {cod} configurado na tabela principal.")
+
+        except Exception as e:
+            logger.warning(f"Erro ao processar código SV {cod}: {e}")
+            continue
+
+
 def buscar_e_alterar(page: Page, siape: str) -> bool:
     """
     Busca o servidor pelo SIAPE e clica em Alterar.
@@ -209,6 +298,13 @@ def executar_configuracao(page: Page, siape: str, unidade: str, codigos_sv: list
     else:
         logger.error("Não foi possível encontrar/alterar o servidor.")
         return False
+
+    # Etapa 2: Tabela principal de serviços
+    configurar_servicos_tabela_principal(
+        page, codigos_sv,
+        atrib_resp=DEFAULTS["atrib_resp"],
+        trasf=DEFAULTS["trasf"]
+    )
 
     # TODO: próximas etapas
     return False
